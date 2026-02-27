@@ -68,6 +68,9 @@ cmiw analyze ./my-project --skip-llm --verbose
 | `--tsconfig <path>` | Path to tsconfig.json | Auto-detected |
 | `--skip-llm` | Skip Claude AI enrichment | `false` |
 | `-v, --verbose` | Enable debug logging | `false` |
+| `--config <path>` | Path to `.cmiwrc.json` config file | Auto-detected |
+| `--min-severity <level>` | Minimum severity to report: `critical`, `high`, `medium`, `low`, `info` | all |
+| `--disable-rules <ids>` | Comma-separated rule IDs to disable (e.g., `cmiw-sec-003,cmiw-sec-004`) | none |
 
 ### Library API
 
@@ -143,6 +146,118 @@ Each finding deducts from a base score of 100:
 
 Grades: A (90-100), B (80-89), C (70-79), D (60-69), F (<60)
 
+### Data-Flow Analysis
+
+Security rules use intra-procedural data-flow (taint) analysis to trace whether user input sources actually reach dangerous sinks. This reduces false positives from flagging constant strings or config values that happen to appear near SQL/exec/fs calls.
+
+**How it works:**
+
+1. For each function body, CMIW walks variable declarations and assignments
+2. Variables assigned from user input (e.g., `const name = req.body.name`) are marked as tainted
+3. Taint propagates through reassignment (`const x = name`), destructuring (`const { id } = req.params`), and property access (`body.email`)
+4. When a security rule finds a dangerous pattern (SQL template, exec call, fs read), it checks whether the arguments are tainted
+5. If arguments are not tainted (constants, config values, internal variables), the finding is suppressed or downgraded
+
+**Limitations:**
+
+- Intra-procedural only: taint is tracked within one function body, not across function calls
+- Does not model control flow: if/else branches are treated as both-taken
+- Does not track through class fields, closures, or callbacks to other functions
+- For cross-function taint tracking, consider supplementing with LLM-based analysis
+
+### Rule Configuration
+
+Create a `.cmiwrc.json` file in your project root to configure security rules. CMIW searches the target directory and its parents for this file.
+
+**Full config example:**
+
+```json
+{
+  "security": {
+    "minSeverity": "medium",
+    "customSources": ["ctx.request.body", "event.data"],
+    "customSinks": {
+      "sql": ["prisma.$queryRaw", "knex.raw"],
+      "command": ["shelljs.exec"]
+    },
+    "customRouterNames": ["api", "v1"],
+    "trustedMiddleware": ["rateLimiter", "helmet"],
+    "falsePositivePatterns": ["DEMO_KEY", "test_token"],
+    "rules": {
+      "cmiw-sec-003": { "enabled": false },
+      "cmiw-sec-004": { "severity": "medium" }
+    }
+  }
+}
+```
+
+**Config options:**
+
+| Option | Type | Description |
+|---|---|---|
+| `minSeverity` | `string` | Filter out findings below this level (`critical`, `high`, `medium`, `low`, `info`) |
+| `customSources` | `string[]` | Additional taint source patterns (e.g., `ctx.request.body` for Koa, `event.data` for Lambda) |
+| `customSinks.sql` | `string[]` | Additional method names treated as SQL sinks (e.g., `prisma.$queryRaw`) |
+| `customSinks.command` | `string[]` | Additional method names treated as command execution sinks |
+| `customRouterNames` | `string[]` | Additional object names recognized as HTTP routers for missing-auth checks |
+| `trustedMiddleware` | `string[]` | Additional middleware names that count as authentication (for missing-auth rule) |
+| `falsePositivePatterns` | `string[]` | Additional strings that indicate a secret value is a placeholder (for hardcoded-secrets rule) |
+| `rules.<id>.enabled` | `boolean` | Disable a specific rule by ID |
+| `rules.<id>.severity` | `string` | Override the severity of all findings from a rule |
+
+**CLI overrides always win** over file config. For example, `--min-severity critical --disable-rules cmiw-sec-003` overrides any `.cmiwrc.json` settings.
+
+**Framework examples:**
+
+Express (default -- works out of the box):
+```json
+{}
+```
+
+Koa:
+```json
+{
+  "security": {
+    "customSources": ["ctx.request.body", "ctx.query", "ctx.params"],
+    "customRouterNames": ["koaRouter"]
+  }
+}
+```
+
+Fastify:
+```json
+{
+  "security": {
+    "customSources": ["request.body", "request.query", "request.params"],
+    "customRouterNames": ["fastify"]
+  }
+}
+```
+
+Next.js API routes:
+```json
+{
+  "security": {
+    "customSources": ["req.body", "req.query"],
+    "rules": {
+      "cmiw-sec-003": { "enabled": false }
+    }
+  }
+}
+```
+
+AWS Lambda:
+```json
+{
+  "security": {
+    "customSources": ["event.body", "event.queryStringParameters", "event.pathParameters"],
+    "rules": {
+      "cmiw-sec-003": { "enabled": false }
+    }
+  }
+}
+```
+
 ## Output Formats
 
 ### Terminal
@@ -208,7 +323,9 @@ src/
     graph-builder.ts            # Knowledge graph construction
     security-analyzer.ts        # Security rule orchestration, scoring
     report-assembler.ts         # Final report assembly
+    config-loader.ts            # .cmiwrc.json finder, parser, merger
   security/
+    data-flow.ts                # Intra-procedural taint tracking
     rules/
       index.ts                  # Rule interface, registry, runner
       unsanitized-input.ts      # cmiw-sec-001
@@ -276,7 +393,7 @@ npm run test:watch
 npm run build
 ```
 
-## Configuration
+## Environment Setup
 
 Copy `.env.example` to `.env` and set your API key:
 

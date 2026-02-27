@@ -24,6 +24,7 @@ import { formatTerminal } from '../../output/terminal-formatter.js';
 import { cloneRepo } from '../../utils/git.js';
 import { setLogLevel } from '../../utils/logger.js';
 import { CmiwError } from '../../utils/errors.js';
+import { loadSecurityConfig } from '../../core/config-loader.js';
 
 /**
  * Execute the analyze command.
@@ -56,6 +57,16 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
     throw new CmiwError(`Target path does not exist: ${targetPath}`, 'INVALID_PATH');
   }
 
+  // Phase 0.5: Load security config
+  const configSpinner = ora('Loading security config...').start();
+  const securityConfig = loadSecurityConfig({
+    targetDir: targetPath,
+    configPath: options.configPath,
+    minSeverity: options.minSeverity,
+    disableRules: options.disableRules,
+  });
+  configSpinner.succeed('Security config loaded');
+
   // Phase 1: Load project
   const loadSpinner = ora('Loading project...').start();
   const project = loadProject({
@@ -79,9 +90,9 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
   const graph = buildGraph(components, relationships);
   graphSpinner.succeed(`Graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
 
-  // Phase 5: Security analysis
+  // Phase 5: Security analysis (with config)
   const secSpinner = ora('Analyzing security...').start();
-  const security = analyzeSecurityPosture(project);
+  const security = analyzeSecurityPosture(project, securityConfig);
   secSpinner.succeed(`Security: ${security.grade} (${security.score}/100) - ${security.findings.length} findings`);
 
   // Phase 6: LLM enrichment

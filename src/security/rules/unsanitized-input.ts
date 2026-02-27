@@ -1,10 +1,17 @@
 /**
  * Intent: Detect unsanitized user input flowing into sensitive sinks.
- * Looks for req.body/req.query/req.params used directly in DB calls or HTML output.
+ * Uses data-flow analysis to trace from user input sources to dangerous sinks
+ * instead of same-line text matching, reducing false positives.
+ *
+ * Detection strategy:
+ * 1. Find dangerous sink operations (innerHTML, .query(), .execute(), etc.)
+ * 2. With data-flow: check if any argument/value is tainted by user input
+ * 3. Without data-flow: fall back to same-line pattern matching
  */
 
 import { type SourceFile, type Project, SyntaxKind, Node } from 'ts-morph';
 import type { SecurityFinding } from '../../types/security.js';
+import type { RuleContext } from '../../types/config.js';
 import type { SecurityRuleDefinition } from './index.js';
 import { generateComponentId } from '../../utils/id-generator.js';
 
@@ -27,6 +34,8 @@ const USER_INPUT_PATTERNS = [
   'request.params',
 ];
 
+const SINK_METHODS = ['query', 'execute', 'raw', 'insertAdjacentHTML'];
+
 export const unsanitizedInputRule: SecurityRuleDefinition = {
   id: 'cmiw-sec-001',
   name: 'Unsanitized Input',
@@ -40,7 +49,6 @@ export const unsanitizedInputRule: SecurityRuleDefinition = {
     const filePath = sourceFile.getFilePath();
     const text = sourceFile.getFullText();
 
-    // Check for user input patterns near dangerous sinks
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -64,6 +72,76 @@ export const unsanitizedInputRule: SecurityRuleDefinition = {
         });
       }
     }
+
+    return findings;
+  },
+
+  checkWithContext(sourceFile: SourceFile, _project: Project, context: RuleContext): SecurityFinding[] {
+    const findings: SecurityFinding[] = [];
+    const filePath = sourceFile.getFilePath();
+
+    sourceFile.forEachDescendant((node) => {
+      // Check call expressions like .query(), .execute(), .raw()
+      if (Node.isCallExpression(node)) {
+        const exprText = node.getExpression().getText();
+        const isSinkCall = SINK_METHODS.some((m) => exprText.endsWith(`.${m}`));
+
+        if (isSinkCall) {
+          for (const arg of node.getArguments()) {
+            const taintResult = context.isNodeTainted(arg);
+            if (taintResult.isTainted) {
+              const line = node.getStartLineNumber();
+              findings.push({
+                id: generateComponentId('finding', filePath, `unsanitized-${line}`),
+                ruleId: 'cmiw-sec-001',
+                severity: 'high',
+                title: 'Unsanitized user input in dangerous sink',
+                description: `User input from ${taintResult.source} flows into ${exprText}() at line ${line}`,
+                filePath,
+                startLine: line,
+                endLine: node.getEndLineNumber(),
+                snippet: node.getText().substring(0, 200),
+                recommendation: 'Sanitize user input before using in HTML output or database queries. Use parameterized queries for databases and DOMPurify for HTML.',
+                cweId: 'CWE-79',
+                owaspCategory: 'A03:2021-Injection',
+              });
+              break;
+            }
+          }
+        }
+      }
+
+      // Check innerHTML/outerHTML assignments
+      if (Node.isPropertyAccessExpression(node)) {
+        const propName = node.getName();
+        if (propName === 'innerHTML' || propName === 'outerHTML') {
+          const parent = node.getParent();
+          if (parent && Node.isBinaryExpression(parent)) {
+            const right = parent.getChildAtIndex(2);
+            if (right) {
+              const taintResult = context.isNodeTainted(right);
+              if (taintResult.isTainted) {
+                const line = parent.getStartLineNumber();
+                findings.push({
+                  id: generateComponentId('finding', filePath, `unsanitized-html-${line}`),
+                  ruleId: 'cmiw-sec-001',
+                  severity: 'high',
+                  title: 'Unsanitized user input assigned to innerHTML',
+                  description: `User input from ${taintResult.source} assigned to ${propName} at line ${line}`,
+                  filePath,
+                  startLine: line,
+                  endLine: parent.getEndLineNumber(),
+                  snippet: parent.getText().substring(0, 200),
+                  recommendation: 'Sanitize HTML with DOMPurify before assigning to innerHTML. Use textContent for plain text.',
+                  cweId: 'CWE-79',
+                  owaspCategory: 'A03:2021-Injection',
+                });
+              }
+            }
+          }
+        }
+      }
+    });
 
     return findings;
   },

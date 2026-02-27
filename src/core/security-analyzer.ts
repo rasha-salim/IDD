@@ -5,6 +5,7 @@
 
 import type { Project } from 'ts-morph';
 import type { SecurityPosture, Severity } from '../types/security.js';
+import type { SecurityConfig } from '../types/config.js';
 import { runSecurityRules } from '../security/rules/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -22,8 +23,8 @@ const SEVERITY_WEIGHTS: Record<Severity, number> = {
  * Intent: Aggregate security findings into an actionable security posture.
  * Guarantees: Score is clamped to 0-100. Grade is A-F based on score.
  */
-export function analyzeSecurityPosture(project: Project): SecurityPosture {
-  const { findings, rules } = runSecurityRules(project);
+export function analyzeSecurityPosture(project: Project, config?: SecurityConfig): SecurityPosture {
+  const { findings, rules } = runSecurityRules(project, config);
 
   // Calculate score: start at 100, deduct per finding based on severity
   let deductions = 0;
