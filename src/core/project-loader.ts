@@ -5,8 +5,8 @@
  */
 
 import { Project } from 'ts-morph';
-import { existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
 import { ProjectLoadError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
@@ -28,17 +28,28 @@ export function loadProject(options: LoadOptions): Project {
     throw new ProjectLoadError(`Path does not exist: ${absolutePath}`, absolutePath);
   }
 
-  const tsconfigPath = options.tsconfigPath
-    ? resolve(options.tsconfigPath)
-    : findTsConfig(absolutePath);
+  const tsconfigCandidates = options.tsconfigPath
+    ? [resolve(options.tsconfigPath)]
+    : findTsConfigs(absolutePath);
 
-  let project: Project;
+  let project: Project | undefined;
 
-  if (tsconfigPath) {
-    logger.info(`Loading project with tsconfig: ${tsconfigPath}`);
-    project = new Project({ tsConfigFilePath: tsconfigPath });
-  } else {
-    logger.info(`No tsconfig found, loading files directly from: ${absolutePath}`);
+  for (const tsconfigPath of tsconfigCandidates) {
+    logger.info(`Trying tsconfig: ${tsconfigPath}`);
+    const candidate = new Project({ tsConfigFilePath: tsconfigPath });
+    const fileCount = candidate.getSourceFiles().length;
+
+    if (fileCount > 0) {
+      logger.info(`Loaded ${fileCount} source files from ${tsconfigPath}`);
+      project = candidate;
+      break;
+    }
+
+    logger.debug(`tsconfig ${tsconfigPath} yielded 0 source files, trying next candidate`);
+  }
+
+  if (!project) {
+    logger.info(`No tsconfig yielded source files, loading files directly from: ${absolutePath}`);
     project = new Project({
       compilerOptions: {
         allowJs: true,
@@ -65,13 +76,52 @@ export function loadProject(options: LoadOptions): Project {
   return project;
 }
 
-function findTsConfig(dirPath: string): string | undefined {
-  const candidates = ['tsconfig.json', 'tsconfig.app.json'];
-  for (const name of candidates) {
-    const fullPath = join(dirPath, name);
-    if (existsSync(fullPath)) {
-      return fullPath;
+/**
+ * Find tsconfig files to try, in priority order.
+ *
+ * Intent: Handle project-reference setups where tsconfig.json has "files": []
+ * and delegates to tsconfig.app.json, tsconfig.node.json, etc.
+ * Guarantees: Returns referenced configs after the root if root uses project references.
+ */
+function findTsConfigs(dirPath: string): string[] {
+  const candidates: string[] = [];
+
+  const rootTsconfig = join(dirPath, 'tsconfig.json');
+  if (existsSync(rootTsconfig)) {
+    candidates.push(rootTsconfig);
+
+    // If root tsconfig uses project references, add referenced configs
+    try {
+      const content = readFileSync(rootTsconfig, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed.references)) {
+        for (const ref of parsed.references) {
+          if (ref.path) {
+            let refPath = resolve(dirPath, ref.path);
+            // If path points to a directory, append tsconfig.json
+            if (!refPath.endsWith('.json')) {
+              refPath = join(refPath, 'tsconfig.json');
+            }
+            // Also check if the path itself is a .json file
+            if (existsSync(refPath)) {
+              candidates.push(refPath);
+            }
+          }
+        }
+      }
+    } catch {
+      // JSON parse failed -- just use the root tsconfig
     }
   }
-  return undefined;
+
+  // Also check common alternative tsconfig names
+  const alternates = ['tsconfig.app.json', 'tsconfig.src.json'];
+  for (const name of alternates) {
+    const fullPath = join(dirPath, name);
+    if (existsSync(fullPath) && !candidates.includes(fullPath)) {
+      candidates.push(fullPath);
+    }
+  }
+
+  return candidates;
 }
