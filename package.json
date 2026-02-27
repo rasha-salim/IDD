@@ -1,0 +1,37 @@
+{
+  "name": "cmiw",
+  "version": "0.1.0",
+  "description": "CLI tool that analyzes TypeScript/JavaScript codebases to generate knowledge graphs, system design analysis, and security assessments",
+  "type": "module",
+  "bin": {
+    "cmiw": "./bin/cmiw.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "tsx src/cli/index.ts"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "node-sarif-builder": "^3.1.0",
+    "ora": "^8.2.0",
+    "simple-git": "^3.27.0",
+    "ts-morph": "^25.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
