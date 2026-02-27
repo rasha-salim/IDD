@@ -1,14 +1,27 @@
 /**
  * Intent: Detect SQL injection vulnerabilities from string concatenation in SQL queries.
- * Looks for template literals or string concatenation containing SQL keywords mixed with variables.
+ * Only flags template literals/concatenation that are actually used in database contexts,
+ * not arbitrary strings that happen to contain SQL-like words.
+ *
+ * Reduces false positives by requiring:
+ * 1. The string looks like actual SQL (starts with a SQL command, not just contains one)
+ * 2. OR the string is passed to a known database function (.query, .execute, .raw, etc.)
+ * 3. OR the string is assigned to a variable with a SQL-related name
  */
 
-import { type SourceFile, type Project, SyntaxKind } from 'ts-morph';
+import { type SourceFile, type Project, SyntaxKind, Node } from 'ts-morph';
 import type { SecurityFinding } from '../../types/security.js';
 import type { SecurityRuleDefinition } from './index.js';
 import { generateComponentId } from '../../utils/id-generator.js';
 
-const SQL_KEYWORDS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'WHERE'];
+// SQL commands that indicate the string IS a SQL statement (must appear at start of template)
+const SQL_STATEMENT_STARTERS = /^\s*`?\s*(SELECT|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|DROP|CREATE|ALTER|TRUNCATE)\b/i;
+
+// Database sink functions where interpolated strings are dangerous
+const DB_SINK_METHODS = ['query', 'execute', 'raw', 'rawQuery', 'exec', 'prepare', 'run'];
+
+// Variable names that suggest SQL context
+const SQL_VAR_PATTERNS = /\b(sql|query|stmt|statement|command)\b/i;
 
 export const sqlInjectionRule: SecurityRuleDefinition = {
   id: 'cmiw-sec-002',
@@ -22,14 +35,17 @@ export const sqlInjectionRule: SecurityRuleDefinition = {
     const findings: SecurityFinding[] = [];
     const filePath = sourceFile.getFilePath();
 
-    // Check template literals for SQL keywords with expressions
     sourceFile.forEachDescendant((node) => {
+      // Check template literals with expressions
       if (node.getKind() === SyntaxKind.TemplateExpression) {
         const text = node.getText();
-        const hasSql = SQL_KEYWORDS.some((kw) => text.toUpperCase().includes(kw));
-        const hasExpression = text.includes('${');
+        if (!text.includes('${')) return;
 
-        if (hasSql && hasExpression) {
+        const isSqlStatement = SQL_STATEMENT_STARTERS.test(text);
+        const isInDbSink = isPassedToDbFunction(node);
+        const isAssignedToSqlVar = isAssignedToSqlVariable(node);
+
+        if (isSqlStatement || isInDbSink || isAssignedToSqlVar) {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `sql-injection-${line}`),
@@ -48,13 +64,15 @@ export const sqlInjectionRule: SecurityRuleDefinition = {
         }
       }
 
-      // Also check string concatenation with SQL keywords
+      // Check string concatenation passed to DB functions
       if (node.getKind() === SyntaxKind.BinaryExpression) {
         const text = node.getText();
-        const hasSql = SQL_KEYWORDS.some((kw) => text.toUpperCase().includes(kw));
-        const hasConcat = text.includes('+');
+        if (!text.includes('+')) return;
 
-        if (hasSql && hasConcat && (text.includes('req.') || text.includes('params') || text.includes('input'))) {
+        const isSqlStatement = SQL_STATEMENT_STARTERS.test(text);
+        const isInDbSink = isPassedToDbFunction(node);
+
+        if ((isSqlStatement || isInDbSink) && (text.includes('req.') || text.includes('params') || text.includes('input'))) {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `sql-concat-${line}`),
@@ -77,3 +95,46 @@ export const sqlInjectionRule: SecurityRuleDefinition = {
     return findings;
   },
 };
+
+/**
+ * Check if a node is an argument to a database function call like db.query(...), pool.execute(...).
+ */
+function isPassedToDbFunction(node: Node): boolean {
+  const parent = node.getParent();
+  if (!parent) return false;
+
+  // Direct argument: db.query(`SELECT...${id}`)
+  if (Node.isCallExpression(parent)) {
+    const callee = parent.getExpression().getText();
+    return DB_SINK_METHODS.some((m) => callee.endsWith(`.${m}`));
+  }
+
+  // Variable assigned then passed: const q = `SELECT...`; db.query(q)
+  // We check the variable name as a heuristic
+  if (Node.isVariableDeclaration(parent)) {
+    const varName = parent.getName();
+    return SQL_VAR_PATTERNS.test(varName);
+  }
+
+  return false;
+}
+
+/**
+ * Check if a node is assigned to a variable with a SQL-related name.
+ */
+function isAssignedToSqlVariable(node: Node): boolean {
+  const parent = node.getParent();
+  if (!parent) return false;
+
+  if (Node.isVariableDeclaration(parent)) {
+    return SQL_VAR_PATTERNS.test(parent.getName());
+  }
+
+  // Also check property assignment: this.query = `...`
+  if (Node.isBinaryExpression(parent)) {
+    const left = parent.getLeft().getText();
+    return SQL_VAR_PATTERNS.test(left);
+  }
+
+  return false;
+}

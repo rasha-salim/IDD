@@ -25,7 +25,8 @@ app.get('/api/users', (req: Request, res: Response) => {
   // SQL Injection via template literal (cmiw-sec-002)
   const userId = req.params.id;
   const query = `SELECT * FROM users WHERE id = ${userId}`;
-  db.query(query);
+  // Also test direct sink detection
+  db.query(`SELECT * FROM orders WHERE user_id = ${userId}`);
 
   res.send('ok');
 });

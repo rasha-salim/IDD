@@ -1,6 +1,11 @@
 /**
  * Intent: Detect Express/Fastify route handlers that lack authentication middleware.
- * Looks for route definitions (app.get, router.post, etc.) without auth-related middleware.
+ * Only flags actual HTTP route registrations, not arbitrary .get()/.post() method calls.
+ *
+ * Reduces false positives by requiring:
+ * 1. The receiver object looks like a router (app, router, server, or typed as Express/Fastify)
+ * 2. The first argument is a string literal starting with '/' (a URL path)
+ * 3. There are at least 2 arguments (path + handler)
  */
 
 import { type SourceFile, type Project, SyntaxKind, Node } from 'ts-morph';
@@ -9,7 +14,15 @@ import type { SecurityRuleDefinition } from './index.js';
 import { generateComponentId } from '../../utils/id-generator.js';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete'];
-const AUTH_INDICATORS = ['auth', 'authenticate', 'authorize', 'isAuthenticated', 'requireAuth', 'protect', 'guard', 'jwt', 'token', 'session'];
+
+// Object names that indicate an HTTP router/server
+const ROUTER_NAMES = /^(app|router|server|route|api|express|fastify)$/i;
+
+const AUTH_INDICATORS = [
+  'auth', 'authenticate', 'authorize', 'isAuthenticated',
+  'requireAuth', 'protect', 'guard', 'jwt', 'token', 'session',
+  'passport', 'middleware', 'verify', 'checkAuth',
+];
 
 export const missingAuthRule: SecurityRuleDefinition = {
   id: 'cmiw-sec-003',
@@ -27,21 +40,28 @@ export const missingAuthRule: SecurityRuleDefinition = {
       if (!Node.isCallExpression(node)) return;
 
       const expression = node.getExpression();
-      const exprText = expression.getText();
+      if (!Node.isPropertyAccessExpression(expression)) return;
 
-      // Match patterns like app.get, router.post, etc.
-      const isRouteCall = HTTP_METHODS.some(
-        (method) => exprText.endsWith(`.${method}`) || exprText.endsWith(`.${method.toUpperCase()}`),
-      );
+      const methodName = expression.getName().toLowerCase();
+      if (!HTTP_METHODS.includes(methodName)) return;
 
-      if (!isRouteCall) return;
+      // Get the receiver object name (the part before .get/.post/etc)
+      const receiver = expression.getExpression().getText();
+
+      // Must be a known router-like object name
+      // Extract just the last identifier for chained calls like express().get
+      const receiverName = receiver.split('.').pop() ?? receiver;
+      if (!ROUTER_NAMES.test(receiverName)) return;
 
       const args = node.getArguments();
       if (args.length < 2) return;
 
-      // First arg should be a route string
-      const firstArg = args[0].getText();
-      if (!firstArg.includes('/') && !firstArg.includes("'") && !firstArg.includes('"')) return;
+      // First argument must be a string literal that looks like a URL path
+      const firstArg = args[0];
+      if (!Node.isStringLiteral(firstArg) && !Node.isNoSubstitutionTemplateLiteral(firstArg)) return;
+
+      const pathValue = firstArg.getText().replace(/['"` ]/g, '');
+      if (!pathValue.startsWith('/')) return;
 
       // Check if any middleware arguments reference auth
       const fullCallText = node.getText().toLowerCase();
