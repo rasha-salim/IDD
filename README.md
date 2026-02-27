@@ -19,8 +19,17 @@ A CLI tool and library that analyzes TypeScript/JavaScript codebases to generate
 ## Installation
 
 ```bash
+# Install dependencies
 npm install
+
+# Build the project
+npm run build
+
+# Install globally (makes 'cmiw' available everywhere)
+npm link
 ```
+
+To uninstall the global command later: `npm unlink -g cmiw`
 
 ## Usage
 
@@ -28,31 +37,25 @@ npm install
 
 ```bash
 # Analyze a local project (terminal output, no LLM)
-node --import tsx/esm src/cli/index.ts analyze ./my-project --skip-llm
+cmiw analyze ./my-project --skip-llm
 
 # JSON output to file
-node --import tsx/esm src/cli/index.ts analyze ./my-project --skip-llm --format json -o report.json
+cmiw analyze ./my-project --skip-llm --format json -o report.json
 
 # SARIF output for CI/CD integration
-node --import tsx/esm src/cli/index.ts analyze ./my-project --skip-llm --format sarif -o results.sarif
+cmiw analyze ./my-project --skip-llm --format sarif -o results.sarif
 
 # Markdown report
-node --import tsx/esm src/cli/index.ts analyze ./my-project --format markdown -o report.md
+cmiw analyze ./my-project --format markdown -o report.md
 
 # Analyze a remote git repository
-node --import tsx/esm src/cli/index.ts analyze https://github.com/user/repo --skip-llm
+cmiw analyze https://github.com/user/repo --skip-llm
 
 # With LLM enrichment (requires ANTHROPIC_API_KEY)
-node --import tsx/esm src/cli/index.ts analyze ./my-project
+cmiw analyze ./my-project
 
 # Verbose debug logging
-node --import tsx/esm src/cli/index.ts analyze ./my-project --skip-llm --verbose
-```
-
-After building (`npm run build`), you can also use:
-
-```bash
-node bin/cmiw.js analyze ./my-project --skip-llm
+cmiw analyze ./my-project --skip-llm --verbose
 ```
 
 ### CLI Options
