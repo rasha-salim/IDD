@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CMIW Knowledge Graph</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; }
+    #controls { position: fixed; top: 0; left: 0; right: 0; z-index: 10; background: #161b22; border-bottom: 1px solid #30363d; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    #controls label { font-size: 13px; color: #8b949e; }
+    #controls select, #controls input { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+    #controls button { background: #238636; border: none; color: #fff; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    #controls button:hover { background: #2ea043; }
+    #file-input { color: #8b949e; }
+    #graph { width: 100vw; height: 100vh; padding-top: 56px; }
+    #tooltip { position: fixed; background: #1c2128; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; font-size: 12px; pointer-events: none; display: none; z-index: 20; max-width: 350px; }
+    #tooltip .tt-name { font-weight: 600; font-size: 14px; color: #58a6ff; margin-bottom: 4px; }
+    #tooltip .tt-type { color: #8b949e; margin-bottom: 6px; }
+    #tooltip .tt-meta { color: #c9d1d9; line-height: 1.5; }
+    #stats { position: fixed; bottom: 12px; right: 16px; font-size: 12px; color: #484f58; }
+    .legend { display: flex; gap: 12px; align-items: center; }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #8b949e; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <input type="file" id="file-input" accept=".json">
+    <label>Filter: <select id="type-filter"><option value="all">All types</option></select></label>
+    <label>Cluster: <select id="cluster-filter"><option value="all">All clusters</option></select></label>
+    <button id="reset-btn">Reset zoom</button>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div id="graph"></div>
+  <div id="tooltip"><div class="tt-name"></div><div class="tt-type"></div><div class="tt-meta"></div></div>
+  <div id="stats"></div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const TYPE_COLORS = {
+      file: '#8b949e',
+      class: '#f0883e',
+      function: '#58a6ff',
+      interface: '#a371f7',
+      'type-alias': '#d2a8ff',
+      enum: '#3fb950',
+      module: '#79c0ff',
+    };
+
+    const EDGE_COLORS = {
+      imports: '#30363d',
+      extends: '#f0883e',
+      implements: '#a371f7',
+      calls: '#58a6ff',
+      'uses-type': '#d2a8ff',
+      contains: '#21262d',
+      'depends-on': '#484f58',
+    };
+
+    let simulation, svg, g, link, node, label;
+    let allNodes = [], allEdges = [], allClusters = [];
+
+    document.getElementById('file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const report = JSON.parse(ev.target.result);
+          if (!report.graph) { alert('No graph data found in report JSON'); return; }
+          loadGraph(report.graph);
+        } catch (err) { alert('Invalid JSON: ' + err.message); }
+      };
+      reader.readAsText(file);
+    });
+
+    function loadGraph(graph) {
+      allNodes = graph.nodes.map(n => ({ ...n }));
+      allEdges = graph.edges.map(e => ({ ...e }));
+      allClusters = graph.clusters || [];
+
+      // Populate filters
+      const types = [...new Set(allNodes.map(n => n.type))].sort();
+      const typeFilter = document.getElementById('type-filter');
+      typeFilter.innerHTML = '<option value="all">All types</option>' + types.map(t => `<option value="${t}">${t} (${allNodes.filter(n=>n.type===t).length})</option>`).join('');
+
+      const groups = [...new Set(allNodes.map(n => n.group))].sort();
+      const clusterFilter = document.getElementById('cluster-filter');
+      clusterFilter.innerHTML = '<option value="all">All clusters</option>' + groups.map(g => `<option value="${g}">${g}</option>`).join('');
+
+      // Build legend
+      const legend = document.getElementById('legend');
+      legend.innerHTML = types.map(t => `<div class="legend-item"><div class="legend-dot" style="background:${TYPE_COLORS[t]||'#8b949e'}"></div>${t}</div>`).join('');
+
+      typeFilter.onchange = () => renderFiltered();
+      clusterFilter.onchange = () => renderFiltered();
+
+      renderFiltered();
+    }
+
+    function renderFiltered() {
+      const typeVal = document.getElementById('type-filter').value;
+      const clusterVal = document.getElementById('cluster-filter').value;
+
+      let nodes = allNodes;
+      if (typeVal !== 'all') nodes = nodes.filter(n => n.type === typeVal);
+      if (clusterVal !== 'all') nodes = nodes.filter(n => n.group === clusterVal);
+
+      const nodeIds = new Set(nodes.map(n => n.id));
+      const edges = allEdges.filter(e => nodeIds.has(e.source?.id || e.source) && nodeIds.has(e.target?.id || e.target));
+
+      render(nodes.map(n => ({...n})), edges.map(e => ({...e})));
+      document.getElementById('stats').textContent = `${nodes.length} nodes, ${edges.length} edges`;
+    }
+
+    function render(nodes, edges) {
+      const container = document.getElementById('graph');
+      container.innerHTML = '';
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      svg = d3.select(container).append('svg')
+        .attr('width', width).attr('height', height);
+
+      g = svg.append('g');
+
+      const zoom = d3.zoom().scaleExtent([0.1, 8]).on('zoom', (e) => g.attr('transform', e.transform));
+      svg.call(zoom);
+      document.getElementById('reset-btn').onclick = () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+
+      // Arrow markers
+      svg.append('defs').selectAll('marker')
+        .data(['arrow']).enter().append('marker')
+        .attr('id', 'arrow').attr('viewBox', '0 -5 10 10')
+        .attr('refX', 20).attr('refY', 0)
+        .attr('markerWidth', 6).attr('markerHeight', 6)
+        .attr('orient', 'auto')
+        .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#30363d');
+
+      link = g.append('g').selectAll('line')
+        .data(edges).enter().append('line')
+        .attr('stroke', d => EDGE_COLORS[d.type] || '#30363d')
+        .attr('stroke-width', d => Math.max(0.5, d.weight || 1))
+        .attr('stroke-opacity', 0.5)
+        .attr('marker-end', 'url(#arrow)');
+
+      node = g.append('g').selectAll('circle')
+        .data(nodes).enter().append('circle')
+        .attr('r', d => Math.max(4, Math.min(16, (d.size || 3) * 1.5)))
+        .attr('fill', d => TYPE_COLORS[d.type] || '#8b949e')
+        .attr('stroke', '#0d1117').attr('stroke-width', 1.5)
+        .style('cursor', 'pointer')
+        .call(d3.drag()
+          .on('start', dragStart)
+          .on('drag', dragging)
+          .on('end', dragEnd));
+
+      // Labels for larger nodes only
+      label = g.append('g').selectAll('text')
+        .data(nodes.filter(n => (n.size || 3) > 3)).enter().append('text')
+        .text(d => d.label.length > 20 ? d.label.slice(0, 18) + '..' : d.label)
+        .attr('font-size', 9).attr('fill', '#8b949e')
+        .attr('dx', d => Math.max(4, (d.size || 3) * 1.5) + 4).attr('dy', 3)
+        .style('pointer-events', 'none');
+
+      // Tooltip
+      const tooltip = document.getElementById('tooltip');
+      node.on('mouseover', (event, d) => {
+        tooltip.style.display = 'block';
+        tooltip.querySelector('.tt-name').textContent = d.label;
+        tooltip.querySelector('.tt-type').textContent = `${d.type} | ${d.group}`;
+        const meta = d.metadata || {};
+        const metaLines = Object.entries(meta).map(([k,v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n');
+        tooltip.querySelector('.tt-meta').textContent = metaLines || 'No metadata';
+
+        // Highlight connected
+        const connectedIds = new Set();
+        edges.forEach(e => {
+          const sid = e.source?.id || e.source;
+          const tid = e.target?.id || e.target;
+          if (sid === d.id) connectedIds.add(tid);
+          if (tid === d.id) connectedIds.add(sid);
+        });
+        node.attr('opacity', n => n.id === d.id || connectedIds.has(n.id) ? 1 : 0.15);
+        link.attr('stroke-opacity', e => {
+          const sid = e.source?.id || e.source;
+          const tid = e.target?.id || e.target;
+          return sid === d.id || tid === d.id ? 0.8 : 0.05;
+        });
+        label.attr('opacity', n => n.id === d.id || connectedIds.has(n.id) ? 1 : 0.1);
+      })
+      .on('mousemove', (event) => {
+        tooltip.style.left = (event.clientX + 16) + 'px';
+        tooltip.style.top = (event.clientY - 10) + 'px';
+      })
+      .on('mouseout', () => {
+        tooltip.style.display = 'none';
+        node.attr('opacity', 1);
+        link.attr('stroke-opacity', 0.5);
+        label.attr('opacity', 1);
+      });
+
+      simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(edges).id(d => d.id).distance(60))
+        .force('charge', d3.forceManyBody().strength(-120))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => Math.max(4, (d.size || 3) * 1.5) + 2))
+        .on('tick', ticked);
+    }
+
+    function ticked() {
+      link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('cx', d => d.x).attr('cy', d => d.y);
+      label.attr('x', d => d.x).attr('y', d => d.y);
+    }
+
+    function dragStart(event, d) { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
+    function dragging(event, d) { d.fx = event.x; d.fy = event.y; }
+    function dragEnd(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
+  </script>
+</body>
+</html>
