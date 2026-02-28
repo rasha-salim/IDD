@@ -6,6 +6,8 @@
 import type { SourceFile, Project, Node } from 'ts-morph';
 import type { Severity, SecurityFinding } from './security.js';
 
+export type Language = 'typescript' | 'python' | 'auto';
+
 export type OutputFormat = 'json' | 'sarif' | 'markdown' | 'terminal';
 
 export interface AnalyzeOptions {
@@ -18,6 +20,7 @@ export interface AnalyzeOptions {
   configPath?: string;
   minSeverity?: Severity;
   disableRules?: string[];
+  language?: Language;
 }
 
 /**

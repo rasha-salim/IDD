@@ -11,6 +11,7 @@ export enum ComponentType {
   TypeAlias = 'type-alias',
   Enum = 'enum',
   Module = 'module',
+  Decorator = 'decorator',
 }
 
 export enum RelationshipType {

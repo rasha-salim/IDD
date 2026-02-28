@@ -5,19 +5,19 @@
 
 import { Command } from 'commander';
 import { runAnalyze } from './commands/analyze.js';
-import type { OutputFormat } from '../types/config.js';
+import type { OutputFormat, Language } from '../types/config.js';
 import type { Severity } from '../types/security.js';
 
 const program = new Command();
 
 program
   .name('cmiw')
-  .description('Analyze TypeScript/JavaScript codebases to generate knowledge graphs, system design analysis, and security assessments')
+  .description('Analyze codebases to generate knowledge graphs, system design analysis, and security assessments')
   .version('0.1.0');
 
 program
   .command('analyze')
-  .description('Analyze a TypeScript/JavaScript project')
+  .description('Analyze a TypeScript/JavaScript or Python project')
   .argument('<path>', 'Path to the project directory or git URL')
   .option('-o, --output <path>', 'Output file path (defaults to stdout)')
   .option('-f, --format <format>', 'Output format: json, sarif, markdown, terminal', 'terminal')
@@ -27,6 +27,7 @@ program
   .option('--config <path>', 'Path to .cmiwrc.json config file (auto-detected if not specified)')
   .option('--min-severity <level>', 'Minimum severity to report: critical, high, medium, low, info')
   .option('--disable-rules <ids>', 'Comma-separated list of rule IDs to disable (e.g., cmiw-sec-003,cmiw-sec-004)')
+  .option('--language <lang>', 'Language to analyze (typescript, python, auto)', 'auto')
   .action(async (targetPath: string, opts: {
     output?: string;
     format: string;
@@ -36,6 +37,7 @@ program
     config?: string;
     minSeverity?: string;
     disableRules?: string;
+    language?: string;
   }) => {
     try {
       await runAnalyze({
@@ -48,6 +50,7 @@ program
         configPath: opts.config,
         minSeverity: opts.minSeverity as Severity | undefined,
         disableRules: opts.disableRules ? opts.disableRules.split(',').map((s) => s.trim()) : undefined,
+        language: (opts.language as Language) ?? 'auto',
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

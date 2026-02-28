@@ -8,7 +8,11 @@
       "Bash(./node_modules/.bin/vitest:*)",
       "Bash(node:*)",
       "Bash(npx tsx:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:tree-sitter.github.io)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npm ls:*)"
     ]
   }
 }

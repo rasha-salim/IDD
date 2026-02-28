@@ -1,7 +1,7 @@
 {
   "name": "cmiw",
   "version": "0.1.0",
-  "description": "CLI tool that analyzes TypeScript/JavaScript codebases to generate knowledge graphs, system design analysis, and security assessments",
+  "description": "CLI tool that analyzes TypeScript/JavaScript and Python codebases to generate knowledge graphs, system design analysis, and security assessments",
   "type": "module",
   "bin": {
     "cmiw": "./bin/cmiw.js"
@@ -26,7 +26,9 @@
     "node-sarif-builder": "^3.1.0",
     "ora": "^8.2.0",
     "simple-git": "^3.27.0",
-    "ts-morph": "^25.0.0"
+    "tree-sitter-wasms": "^0.1.13",
+    "ts-morph": "^25.0.0",
+    "web-tree-sitter": "^0.24.7"
   },
   "devDependencies": {
     "@types/node": "^22.13.0",

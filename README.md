@@ -1,13 +1,14 @@
 # CMIW
 
-A CLI tool and library that analyzes TypeScript/JavaScript codebases to generate knowledge graphs, system design analysis, and security assessments.
+A CLI tool and library that analyzes TypeScript/JavaScript and Python codebases to generate knowledge graphs, system design analysis, and security assessments.
 
 ## What It Does
 
-- **Component Extraction** -- Parses your codebase with ts-morph to identify classes, functions, interfaces, types, enums, and their metadata
+- **Component Extraction** -- Parses your codebase with ts-morph (TypeScript/JS) or tree-sitter (Python) to identify classes, functions, interfaces, types, enums, and their metadata
 - **Relationship Mapping** -- Traces imports, class inheritance, interface implementations, and function calls across files
 - **Knowledge Graph** -- Builds a graph of nodes (components) and edges (relationships) with cluster detection and circular dependency analysis
-- **Security Scanning** -- Runs 7 static analysis rules mapped to CWE/OWASP standards, producing a scored security posture
+- **Security Scanning** -- Runs 7 TS rules + 6 Python rules mapped to CWE/OWASP standards, producing a scored security posture
+- **Multi-Language Support** -- Auto-detects language from file extensions, or use `--language` to override
 - **AI Enrichment** -- Optionally uses Claude to analyze architecture patterns and provide security assessment context
 - **Multiple Output Formats** -- Terminal (colored), JSON, SARIF 2.1.0, and Markdown
 
@@ -71,6 +72,7 @@ cmiw analyze ./my-project --skip-llm --verbose
 | `--config <path>` | Path to `.cmiwrc.json` config file | Auto-detected |
 | `--min-severity <level>` | Minimum severity to report: `critical`, `high`, `medium`, `low`, `info` | all |
 | `--disable-rules <ids>` | Comma-separated rule IDs to disable (e.g., `cmiw-sec-003,cmiw-sec-004`) | none |
+| `--language <lang>` | Language to analyze: `typescript`, `python`, `auto` | `auto` |
 
 ### Library API
 
@@ -134,6 +136,19 @@ The `analyze` command runs 8 phases in sequence:
 | cmiw-sec-005 | Unsafe Eval | Critical/High | CWE-95 | A03:2021 | `eval()`, `Function()`, `innerHTML` assignment, `document.write()` |
 | cmiw-sec-006 | Command Injection | Critical | CWE-78 | A03:2021 | Dynamic input passed to `exec()`, `execSync()`, `spawn()` |
 | cmiw-sec-007 | Path Traversal | High | CWE-22 | A01:2021 | User input used in `readFile()`, `writeFile()`, and other fs operations |
+
+### Python Security Rules
+
+| Rule ID | Name | Severity | CWE | OWASP | What It Detects |
+|---|---|---|---|---|---|
+| cmiw-py-001 | SQL Injection | High | CWE-89 | A03:2021 | f-strings or `.format()` in `cursor.execute()`, `db.execute()` |
+| cmiw-py-002 | Command Injection | Critical | CWE-78 | A03:2021 | User input in `os.system()`, `subprocess`, `eval()`, `exec()` |
+| cmiw-py-003 | Path Traversal | High | CWE-22 | A01:2021 | User input in `open()`, `os.path.join()` without validation |
+| cmiw-py-004 | Hardcoded Secrets | Medium | CWE-798 | A07:2021 | Passwords, API keys, tokens as string literals |
+| cmiw-py-005 | Unsafe Deserialization | Critical | CWE-502 | A08:2021 | `pickle.loads()`, `yaml.load()` without SafeLoader |
+| cmiw-py-006 | Missing Auth | Medium | CWE-862 | A01:2021 | Flask/Django routes without `@login_required` |
+
+**Supported Python frameworks:** Flask, Django, FastAPI
 
 ### Scoring
 
@@ -289,12 +304,13 @@ The LLM receives component/relationship summaries and graph statistics, not raw 
 
 | Type | Description |
 |---|---|
-| `file` | Source files (.ts, .tsx, .js, .jsx) |
+| `file` | Source files (.ts, .tsx, .js, .jsx, .py) |
 | `class` | Class declarations with methods, properties, decorators |
 | `function` | Top-level function declarations with parameters and return types |
 | `interface` | TypeScript interfaces with property definitions |
 | `type-alias` | TypeScript type alias declarations |
 | `enum` | Enum declarations |
+| `decorator` | Python decorators extracted as first-class components |
 
 ## Relationship Types
 
@@ -316,6 +332,15 @@ src/
     index.ts                    # Commander.js program setup
     commands/
       analyze.ts                # Analysis pipeline orchestration
+  analyzers/
+    typescript/
+      index.ts                  # TypeScriptAnalyzer (wraps ts-morph)
+    python/
+      index.ts                  # PythonAnalyzer (tree-sitter WASM)
+      component-extractor.ts    # Python class/function extraction
+      relationship-builder.ts   # Python import/call resolution
+      security-rules.ts         # 6 Python-specific security rules
+      taint-analysis.ts         # Python taint tracking
   core/
     project-loader.ts           # ts-morph Project initialization
     component-extractor.ts      # AST walking, component extraction
@@ -324,6 +349,8 @@ src/
     security-analyzer.ts        # Security rule orchestration, scoring
     report-assembler.ts         # Final report assembly
     config-loader.ts            # .cmiwrc.json finder, parser, merger
+    language-analyzer.ts        # LanguageAnalyzer interface + factory
+    language-detector.ts        # Auto-detect language from file extensions
   security/
     data-flow.ts                # Intra-procedural taint tracking
     rules/
@@ -363,7 +390,9 @@ bin/
 tests/
   fixtures/
     simple-project/             # Known TS project for positive tests
-    security-vulnerable/        # Intentionally vulnerable code for security tests
+    security-vulnerable/        # Intentionally vulnerable TS code for security tests
+    python-project/             # Clean Python project for positive tests
+    python-vulnerable/          # Intentionally vulnerable Python code for security tests
   unit/
     core/                       # Component extractor, relationship builder, graph builder
     security/                   # Security rule tests
@@ -413,3 +442,13 @@ cp .env.example .env
 | ora | Terminal spinners | Thailand |
 | simple-git | Git operations | UK |
 | node-sarif-builder | SARIF output | France |
+| web-tree-sitter | WASM tree-sitter bindings | US (GitHub/Zed team) |
+| tree-sitter-wasms | Prebuilt language grammars | US |
+
+## Python Support Limitations
+
+- **No type inference**: Python is dynamically typed -- type annotations are extracted if present, otherwise "unknown"
+- **No cross-module symbol resolution**: Unlike ts-morph with full type system access, Python import resolution is file-path based
+- **Intra-procedural taint only**: Same limitation as TypeScript analysis
+- **No virtual env analysis**: Does not inspect installed packages or their source
+- **No runtime behavior**: Cannot detect monkey-patching, dynamic imports, or metaclasses

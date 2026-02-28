@@ -10,12 +10,10 @@ import { existsSync } from 'node:fs';
 import ora from 'ora';
 import type { AnalyzeOptions } from '../../types/config.js';
 import type { Architecture } from '../../types/architecture.js';
-import { loadProject } from '../../core/project-loader.js';
-import { extractComponents } from '../../core/component-extractor.js';
-import { buildRelationships } from '../../core/relationship-builder.js';
 import { buildGraph } from '../../core/graph-builder.js';
-import { analyzeSecurityPosture } from '../../core/security-analyzer.js';
 import { assembleReport } from '../../core/report-assembler.js';
+import { detectLanguage } from '../../core/language-detector.js';
+import { createAnalyzer } from '../../core/language-analyzer.js';
 import { enrichWithLlm } from '../../llm/enrichment.js';
 import { formatJson } from '../../output/json-formatter.js';
 import { formatSarif } from '../../output/sarif-formatter.js';
@@ -67,22 +65,25 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
   });
   configSpinner.succeed('Security config loaded');
 
-  // Phase 1: Load project
+  // Phase 0.8: Detect language
+  const langSpinner = ora('Detecting language...').start();
+  const language = detectLanguage(targetPath, options.language);
+  langSpinner.succeed(`Detected language: ${language}`);
+
+  // Phase 1: Load project (via language analyzer)
   const loadSpinner = ora('Loading project...').start();
-  const project = loadProject({
-    targetPath,
-    tsconfigPath: options.tsconfigPath,
-  });
-  loadSpinner.succeed(`Loaded ${project.getSourceFiles().length} source files`);
+  const analyzer = await createAnalyzer(language);
+  await analyzer.loadProject(targetPath, { tsconfigPath: options.tsconfigPath });
+  loadSpinner.succeed(`Loaded ${analyzer.getFileCount()} source files (${language})`);
 
   // Phase 2: Extract components
   const extractSpinner = ora('Extracting components...').start();
-  const components = extractComponents(project);
+  const components = analyzer.extractComponents();
   extractSpinner.succeed(`Extracted ${components.length} components`);
 
   // Phase 3: Build relationships
   const relSpinner = ora('Building relationships...').start();
-  const relationships = buildRelationships(project, components);
+  const relationships = analyzer.buildRelationships(components);
   relSpinner.succeed(`Built ${relationships.length} relationships`);
 
   // Phase 4: Build knowledge graph
@@ -90,9 +91,9 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
   const graph = buildGraph(components, relationships);
   graphSpinner.succeed(`Graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
 
-  // Phase 5: Security analysis (with config)
+  // Phase 5: Security analysis (via language analyzer)
   const secSpinner = ora('Analyzing security...').start();
-  const security = analyzeSecurityPosture(project, securityConfig);
+  const security = analyzer.analyzeSecurityPosture(securityConfig);
   secSpinner.succeed(`Security: ${security.grade} (${security.score}/100) - ${security.findings.length} findings`);
 
   // Phase 6: LLM enrichment
