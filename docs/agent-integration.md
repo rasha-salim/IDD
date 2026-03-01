@@ -443,7 +443,7 @@ import {
   createAnalyzer,
   buildGraph,
   loadSecurityConfig,
-} from 'cmiw';
+} from 'cmiw-cli';
 
 // Components only
 const language = detectLanguage('./project');

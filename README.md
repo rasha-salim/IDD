@@ -187,7 +187,7 @@ import {
   formatSarif,
   formatMarkdown,
   formatTerminal,
-} from 'cmiw';
+} from 'cmiw-cli';
 
 const project = loadProject({ targetPath: './my-project' });
 const components = extractComponents(project);
@@ -586,9 +586,11 @@ npm pack --dry-run
 # Build the project
 npm run build
 
-# Publish (public access required for scoped packages)
-npm publish --access public
+# Publish
+npm publish
 ```
+
+> If you later rename the package to a scoped name (e.g., `@your-scope/cmiw`), you will need `npm publish --access public` since scoped packages default to restricted (paid).
 
 ### Subsequent Publishes
 
@@ -607,13 +609,13 @@ npm publish
 
 Users can install globally:
 ```bash
-npm install -g cmiw
+npm install -g cmiw-cli
 cmiw analyze ./my-project --skip-llm
 ```
 
 Or use with npx (no install):
 ```bash
-npx cmiw analyze ./my-project --skip-llm
-npx cmiw components ./my-project
-npx cmiw security ./my-project
+npx cmiw-cli analyze ./my-project --skip-llm
+npx cmiw-cli components ./my-project
+npx cmiw-cli security ./my-project
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "cmiw",
+  "name": "cmiw-cli",
   "version": "0.1.0",
   "description": "CLI tool that analyzes TypeScript/JavaScript and Python codebases to generate knowledge graphs, system design analysis, and security assessments",
   "type": "module",
