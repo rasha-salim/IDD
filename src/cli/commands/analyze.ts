@@ -7,7 +7,6 @@
 import { resolve } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import ora from 'ora';
 import type { AnalyzeOptions } from '../../types/config.js';
 import type { Architecture } from '../../types/architecture.js';
 import { buildGraph } from '../../core/graph-builder.js';
@@ -23,6 +22,7 @@ import { cloneRepo } from '../../utils/git.js';
 import { setLogLevel } from '../../utils/logger.js';
 import { CmiwError } from '../../utils/errors.js';
 import { loadSecurityConfig } from '../../core/config-loader.js';
+import { shouldBeQuiet, createSpinner } from '../quiet-spinner.js';
 
 /**
  * Execute the analyze command.
@@ -35,12 +35,13 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
     setLogLevel('debug');
   }
 
+  const quiet = shouldBeQuiet(options.quiet);
   const startTime = Date.now();
   let targetPath = options.targetPath;
 
   // Phase 0: Resolve target (git clone if URL)
   if (targetPath.startsWith('http://') || targetPath.startsWith('https://') || targetPath.startsWith('git@')) {
-    const spinner = ora('Cloning repository...').start();
+    const spinner = createSpinner('Cloning repository...', quiet).start();
     try {
       targetPath = await cloneRepo(targetPath);
       spinner.succeed('Repository cloned');
@@ -56,7 +57,7 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
   }
 
   // Phase 0.5: Load security config
-  const configSpinner = ora('Loading security config...').start();
+  const configSpinner = createSpinner('Loading security config...', quiet).start();
   const securityConfig = loadSecurityConfig({
     targetDir: targetPath,
     configPath: options.configPath,
@@ -66,33 +67,33 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
   configSpinner.succeed('Security config loaded');
 
   // Phase 0.8: Detect language
-  const langSpinner = ora('Detecting language...').start();
+  const langSpinner = createSpinner('Detecting language...', quiet).start();
   const language = detectLanguage(targetPath, options.language);
   langSpinner.succeed(`Detected language: ${language}`);
 
   // Phase 1: Load project (via language analyzer)
-  const loadSpinner = ora('Loading project...').start();
+  const loadSpinner = createSpinner('Loading project...', quiet).start();
   const analyzer = await createAnalyzer(language);
   await analyzer.loadProject(targetPath, { tsconfigPath: options.tsconfigPath });
   loadSpinner.succeed(`Loaded ${analyzer.getFileCount()} source files (${language})`);
 
   // Phase 2: Extract components
-  const extractSpinner = ora('Extracting components...').start();
+  const extractSpinner = createSpinner('Extracting components...', quiet).start();
   const components = analyzer.extractComponents();
   extractSpinner.succeed(`Extracted ${components.length} components`);
 
   // Phase 3: Build relationships
-  const relSpinner = ora('Building relationships...').start();
+  const relSpinner = createSpinner('Building relationships...', quiet).start();
   const relationships = analyzer.buildRelationships(components);
   relSpinner.succeed(`Built ${relationships.length} relationships`);
 
   // Phase 4: Build knowledge graph
-  const graphSpinner = ora('Building knowledge graph...').start();
+  const graphSpinner = createSpinner('Building knowledge graph...', quiet).start();
   const graph = buildGraph(components, relationships);
   graphSpinner.succeed(`Graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
 
   // Phase 5: Security analysis (via language analyzer)
-  const secSpinner = ora('Analyzing security...').start();
+  const secSpinner = createSpinner('Analyzing security...', quiet).start();
   const security = analyzer.analyzeSecurityPosture(securityConfig);
   secSpinner.succeed(`Security: ${security.grade} (${security.score}/100) - ${security.findings.length} findings`);
 
@@ -101,7 +102,7 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
   let llmEnriched = false;
 
   if (!options.skipLlm) {
-    const llmSpinner = ora('Enriching with LLM...').start();
+    const llmSpinner = createSpinner('Enriching with LLM...', quiet).start();
     try {
       const enrichment = await enrichWithLlm(components, relationships, graph, security);
       architecture = enrichment.architecture;
@@ -170,5 +171,10 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
     } else {
       console.log(output);
     }
+  }
+
+  // Exit code 2 if security findings exist above threshold
+  if (security.findings.length > 0) {
+    process.exitCode = 2;
   }
 }

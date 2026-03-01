@@ -17,10 +17,26 @@ export interface AnalyzeOptions {
   tsconfigPath?: string;
   skipLlm: boolean;
   verbose: boolean;
+  quiet?: boolean;
   configPath?: string;
   minSeverity?: Severity;
   disableRules?: string[];
   language?: Language;
+}
+
+/**
+ * Intent: Shared options for granular subcommands (components, graph, security).
+ * These subcommands always output JSON and do not need format/output/skipLlm options.
+ */
+export interface SubcommandOptions {
+  targetPath: string;
+  language?: Language;
+  tsconfigPath?: string;
+  verbose: boolean;
+  quiet: boolean;
+  configPath?: string;
+  minSeverity?: Severity;
+  disableRules?: string[];
 }
 
 /**

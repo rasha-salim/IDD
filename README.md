@@ -34,10 +34,22 @@ To uninstall the global command later: `npm unlink -g cmiw`
 
 ## Usage
 
-### CLI
+### Commands
+
+CMIW provides granular subcommands designed for both human users and coding agents:
+
+```
+cmiw analyze <path>       Full analysis pipeline (components + graph + security + architecture)
+cmiw components <path>    Extract components only -> JSON array
+cmiw graph <path>         Build knowledge graph -> JSON object
+cmiw security <path>      Security analysis only -> JSON object
+cmiw schema <type>        Output JSON Schema for a type (no project needed)
+```
+
+### CLI Examples
 
 ```bash
-# Analyze a local project (terminal output, no LLM)
+# Full analysis (terminal output, no LLM)
 cmiw analyze ./my-project --skip-llm
 
 # JSON output to file
@@ -55,24 +67,109 @@ cmiw analyze https://github.com/user/repo --skip-llm
 # With LLM enrichment (requires ANTHROPIC_API_KEY)
 cmiw analyze ./my-project
 
-# Verbose debug logging
-cmiw analyze ./my-project --skip-llm --verbose
+# Extract only components (always JSON)
+cmiw components ./my-project --quiet
+
+# Build knowledge graph only
+cmiw graph ./my-project --quiet
+
+# Security scan with exit code (0=clean, 2=findings)
+cmiw security ./my-project --quiet
+
+# Discover output shapes before calling subcommands
+cmiw schema components
+cmiw schema graph
+cmiw schema security
+cmiw schema report
 ```
 
 ### CLI Options
 
+**Shared options** (available on `analyze`, `components`, `graph`, `security`):
+
 | Option | Description | Default |
 |---|---|---|
-| `<path>` | Project directory or git URL (required) | -- |
+| `<path>` | Project directory (or git URL for `analyze`) | required |
+| `--tsconfig <path>` | Path to tsconfig.json | Auto-detected |
+| `--language <lang>` | Language: `typescript`, `python`, `auto` | `auto` |
+| `-v, --verbose` | Enable debug logging | `false` |
+| `-q, --quiet` | Suppress progress output (auto-enabled when piped) | `false` |
+
+**Analyze-specific options:**
+
+| Option | Description | Default |
+|---|---|---|
 | `-o, --output <path>` | Write output to file instead of stdout | stdout |
 | `-f, --format <format>` | Output format: `terminal`, `json`, `sarif`, `markdown` | `terminal` |
-| `--tsconfig <path>` | Path to tsconfig.json | Auto-detected |
 | `--skip-llm` | Skip Claude AI enrichment | `false` |
-| `-v, --verbose` | Enable debug logging | `false` |
+
+**Security options** (available on `analyze` and `security`):
+
+| Option | Description | Default |
+|---|---|---|
 | `--config <path>` | Path to `.cmiwrc.json` config file | Auto-detected |
-| `--min-severity <level>` | Minimum severity to report: `critical`, `high`, `medium`, `low`, `info` | all |
-| `--disable-rules <ids>` | Comma-separated rule IDs to disable (e.g., `cmiw-sec-003,cmiw-sec-004`) | none |
-| `--language <lang>` | Language to analyze: `typescript`, `python`, `auto` | `auto` |
+| `--min-severity <level>` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` | all |
+| `--disable-rules <ids>` | Comma-separated rule IDs to disable | none |
+
+### Exit Codes
+
+| Code | Meaning | Commands |
+|---|---|---|
+| 0 | Success (or no security findings above threshold) | all |
+| 1 | Error (invalid path, parse failure, runtime error) | all |
+| 2 | Security findings found above severity threshold | `analyze`, `security` |
+
+Exit code 2 lets CI/CD pipelines and agents gate on security without parsing JSON.
+
+## Agent Usage
+
+> For the full agent integration guide with detailed examples, patterns, and error handling, see [docs/agent-integration.md](docs/agent-integration.md).
+
+CMIW is designed to be a first-class tool for coding agents (Claude Code, Cursor, custom MCP agents). The granular subcommands output structured JSON that agents can parse and act on directly.
+
+### Key Design Choices for Agents
+
+- **Auto-quiet on pipe**: When stdout is not a TTY (e.g., piped to `jq`), spinners are automatically suppressed. No `--quiet` flag needed.
+- **Always JSON**: The `components`, `graph`, and `security` subcommands always output JSON. No `--format` flag needed.
+- **Schema introspection**: Call `cmiw schema <type>` to discover the output shape before calling the actual subcommand. No documentation lookup needed.
+- **Security exit codes**: `cmiw security` exits with code 2 if findings exist, enabling simple `if` checks without JSON parsing.
+
+### Example Agent Workflows
+
+**Get component names:**
+```bash
+cmiw components ./project | jq '.[].name'
+```
+
+**Check if project has security issues:**
+```bash
+cmiw security ./project --quiet
+# $? == 0 -> clean, $? == 2 -> has findings
+```
+
+**Get security findings with severity filter:**
+```bash
+cmiw security ./project --min-severity high | jq '.findings[] | {title, severity, filePath, startLine}'
+```
+
+**Build graph and extract circular dependencies:**
+```bash
+cmiw graph ./project | jq '.circularDependencies'
+```
+
+**Discover output shape before calling:**
+```bash
+# Learn what fields CmiwComponent has
+cmiw schema components | jq '.items.properties | keys'
+
+# Then extract components
+cmiw components ./project | jq '.[0]'
+```
+
+**Full analysis as JSON (auto-quiets in pipe):**
+```bash
+cmiw analyze ./project --skip-llm --format json | jq '.security.grade'
+```
 
 ### Library API
 
@@ -329,9 +426,14 @@ The LLM receives component/relationship summaries and graph statistics, not raw 
 ```
 src/
   cli/
-    index.ts                    # Commander.js program setup
+    index.ts                    # Commander.js program setup + subcommand registration
+    quiet-spinner.ts            # Spinner/quiet utility for pipe detection
     commands/
-      analyze.ts                # Analysis pipeline orchestration
+      analyze.ts                # Full analysis pipeline orchestration
+      components.ts             # Extract components -> JSON
+      graph.ts                  # Build knowledge graph -> JSON
+      security.ts               # Security analysis -> JSON (exit code 2)
+      schema.ts                 # Output JSON Schema for types
   analyzers/
     typescript/
       index.ts                  # TypeScriptAnalyzer (wraps ts-morph)
@@ -401,6 +503,7 @@ tests/
     utils/                      # ID generator tests
   integration/
     analyze-command.test.ts     # Full pipeline tests
+    subcommands.test.ts         # Subcommand tests (components, graph, security, schema)
 ```
 
 ## Development
@@ -452,3 +555,65 @@ cp .env.example .env
 - **Intra-procedural taint only**: Same limitation as TypeScript analysis
 - **No virtual env analysis**: Does not inspect installed packages or their source
 - **No runtime behavior**: Cannot detect monkey-patching, dynamic imports, or metaclasses
+
+## Publishing to npm
+
+### Prerequisites
+
+1. Create an npm account at https://www.npmjs.com/signup
+2. Log in via CLI: `npm login`
+3. Verify you are logged in: `npm whoami`
+
+### Before Publishing
+
+```bash
+# Verify the build works
+npm run build
+
+# Verify typecheck passes
+npm run typecheck
+
+# Verify all tests pass
+npm test
+
+# Check what files would be published
+npm pack --dry-run
+```
+
+### First Publish
+
+```bash
+# Build the project
+npm run build
+
+# Publish (public access required for scoped packages)
+npm publish --access public
+```
+
+### Subsequent Publishes
+
+```bash
+# Bump version (patch/minor/major)
+npm version patch   # 0.1.0 -> 0.1.1
+npm version minor   # 0.1.0 -> 0.2.0
+npm version major   # 0.1.0 -> 1.0.0
+
+# Build and publish
+npm run build
+npm publish
+```
+
+### After Publishing
+
+Users can install globally:
+```bash
+npm install -g cmiw
+cmiw analyze ./my-project --skip-llm
+```
+
+Or use with npx (no install):
+```bash
+npx cmiw analyze ./my-project --skip-llm
+npx cmiw components ./my-project
+npx cmiw security ./my-project
+```
