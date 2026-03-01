@@ -171,6 +171,15 @@ cmiw components ./project | jq '.[0]'
 cmiw analyze ./project --skip-llm --format json | jq '.security.grade'
 ```
 
+### Claude Code Skills
+
+CMIW includes ready-to-use Claude Code skills for interactive agent workflows:
+
+- **`/cmiw-security`** -- Scan a project, present findings, offer to fix them, re-scan to verify
+- **`/cmiw-diagram`** -- Generate a Mermaid system design diagram from codebase analysis
+
+Install them by copying from `docs/skills/` to `~/.claude/skills/`. See [docs/agent-integration.md](docs/agent-integration.md#claude-code-skills) for full details and instructions for writing your own skills.
+
 ### Library API
 
 All analysis functions are available for programmatic use:
@@ -556,65 +565,13 @@ cp .env.example .env
 - **No virtual env analysis**: Does not inspect installed packages or their source
 - **No runtime behavior**: Cannot detect monkey-patching, dynamic imports, or metaclasses
 
-## Publishing to npm
-
-### Prerequisites
-
-1. Create an npm account at https://www.npmjs.com/signup
-2. Log in via CLI: `npm login`
-3. Verify you are logged in: `npm whoami`
-
-### Before Publishing
+## Installation from npm
 
 ```bash
-# Verify the build works
-npm run build
-
-# Verify typecheck passes
-npm run typecheck
-
-# Verify all tests pass
-npm test
-
-# Check what files would be published
-npm pack --dry-run
-```
-
-### First Publish
-
-```bash
-# Build the project
-npm run build
-
-# Publish
-npm publish
-```
-
-> If you later rename the package to a scoped name (e.g., `@your-scope/cmiw`), you will need `npm publish --access public` since scoped packages default to restricted (paid).
-
-### Subsequent Publishes
-
-```bash
-# Bump version (patch/minor/major)
-npm version patch   # 0.1.0 -> 0.1.1
-npm version minor   # 0.1.0 -> 0.2.0
-npm version major   # 0.1.0 -> 1.0.0
-
-# Build and publish
-npm run build
-npm publish
-```
-
-### After Publishing
-
-Users can install globally:
-```bash
+# Install globally
 npm install -g cmiw-cli
-cmiw analyze ./my-project --skip-llm
-```
 
-Or use with npx (no install):
-```bash
+# Or use with npx (no install)
 npx cmiw-cli analyze ./my-project --skip-llm
 npx cmiw-cli components ./my-project
 npx cmiw-cli security ./my-project

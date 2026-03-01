@@ -433,6 +433,250 @@ fi
 
 ---
 
+## Claude Code Skills
+
+CMIW ships with two ready-to-use [Claude Code skills](https://docs.anthropic.com/en/docs/claude-code) that turn the CLI into interactive agent workflows. Skills are slash commands that Claude Code executes with full context awareness -- they run CMIW, parse the structured output, and act on it.
+
+### Installing the Skills
+
+Copy the skill directories to your Claude Code skills folder:
+
+```bash
+# User-level (available in all projects)
+mkdir -p ~/.claude/skills/cmiw-security
+mkdir -p ~/.claude/skills/cmiw-diagram
+cp docs/skills/cmiw-security.md ~/.claude/skills/cmiw-security/SKILL.md
+cp docs/skills/cmiw-diagram.md ~/.claude/skills/cmiw-diagram/SKILL.md
+```
+
+Or create them manually using the examples below.
+
+### Skill 1: `/cmiw-security` -- Scan, Report, Fix
+
+Invocation: `/cmiw-security ./path/to/project`
+
+This skill runs a full security scan, presents findings grouped by severity, and offers to fix them. After applying fixes, it re-scans to verify the issues are resolved.
+
+**Workflow:**
+1. Runs `cmiw security <path> --quiet`
+2. Checks exit code (0 = clean, 2 = findings)
+3. Parses `SecurityPosture` JSON and presents findings by severity
+4. Asks user which findings to fix (all, critical/high only, specific ones, or skip)
+5. Reads source files, applies fixes based on CWE and recommendation
+6. Re-scans to verify the fixes
+
+**Full SKILL.md:**
+
+```yaml
+---
+name: cmiw-security
+description: Run CMIW security analysis on a project, parse findings, and offer
+  to fix them. Use when the user wants to scan a codebase for security vulnerabilities.
+---
+```
+
+```markdown
+# CMIW Security Scan
+
+Run a security scan on the target project using CMIW and act on the results.
+
+## Arguments
+
+The user may provide a path as an argument. If no path is provided, use the
+current working directory (`.`).
+
+## Steps
+
+### 1. Run the security scan
+
+Run the CMIW security scanner on the target path:
+
+    cmiw security <path> --quiet 2>/dev/null
+
+Capture both the JSON output and the exit code.
+
+- **Exit 0**: No security findings. Report that the project is clean and stop.
+- **Exit 1**: Error running CMIW. Report the error from stderr and stop.
+- **Exit 2**: Security findings detected. Continue to step 2.
+
+### 2. Parse and present findings
+
+Parse the JSON output (which is a `SecurityPosture` object) and present findings
+grouped by severity in descending order (critical first, then high, medium, low,
+info).
+
+For each finding, show:
+- Severity and title
+- File path and line number
+- Code snippet
+- CWE ID if available
+- Recommendation
+
+Also show the overall score and grade at the top.
+
+### 3. Offer to fix
+
+After presenting findings, ask the user which findings they want to fix. Options:
+- Fix all findings
+- Fix only critical/high severity
+- Fix specific findings by number
+- Skip (just report)
+
+### 4. Apply fixes
+
+For each finding the user wants fixed:
+1. Read the file at the specified path and line
+2. Understand the vulnerability from the finding description and CWE
+3. Apply the recommended fix (use parameterized queries for SQL injection,
+   sanitize input, use path validation, etc.)
+4. Do NOT introduce new issues while fixing
+
+### 5. Re-scan
+
+After applying fixes, run the security scan again to verify:
+
+    cmiw security <path> --quiet 2>/dev/null
+
+Report the updated score/grade and any remaining findings.
+
+## Important
+
+- Always read the actual source file before attempting a fix.
+- Never suppress or hide findings.
+- Do not disable security rules as a "fix".
+- If CMIW is not installed, tell the user to install it: `npm install -g cmiw-cli`
+```
+
+### Skill 2: `/cmiw-diagram` -- System Design Visualization
+
+Invocation: `/cmiw-diagram ./path/to/project`
+
+This skill analyzes a codebase and generates a Mermaid system design diagram with components grouped into layers, relationship edges, circular dependency highlights, and a security grade annotation.
+
+**Workflow:**
+1. Runs `cmiw components`, `cmiw graph`, and `cmiw security` in parallel
+2. Groups components into subgraphs by directory cluster
+3. Selects diagram layout based on project size (TD for small, LR for large)
+4. Generates Mermaid syntax with typed node shapes and labeled edges
+5. Saves as `system-design.md` with metrics and legend
+
+**Node shapes by type:**
+
+| Component Type | Mermaid Shape | Example |
+|---|---|---|
+| Class | `["Name"]` rectangle | `UserService["UserService (class)"]` |
+| Interface | `(("Name"))` circle | `IAuth(("IAuth (interface)"))` |
+| Function | `["name()"]` rectangle | `handleRequest["handleRequest()"]` |
+| Enum | `{{"Name"}}` hexagon | `Status{{"Status (enum)"}}` |
+
+**Edge styles by relationship:**
+
+| Relationship | Mermaid Syntax |
+|---|---|
+| imports | `-->` solid arrow |
+| extends | `-->\|extends\|` labeled solid |
+| implements | `-.->\|implements\|` labeled dashed |
+| calls | `-->\|calls\|` labeled solid |
+
+**Full SKILL.md:**
+
+```yaml
+---
+name: cmiw-diagram
+description: Generate a system design diagram from a codebase using CMIW analysis.
+  Use when the user wants to visualize project architecture, component relationships,
+  or system structure.
+---
+```
+
+```markdown
+# CMIW System Design Diagram
+
+Analyze a codebase with CMIW and generate a Mermaid system design diagram showing
+components, relationships, layers, and clusters.
+
+## Arguments
+
+The user may provide:
+- A path as the first argument. If no path is provided, use `.`.
+- An optional focus: "full", "imports", "classes", "security". Default is "full".
+
+## Steps
+
+### 1. Gather data
+
+Run three CMIW commands to collect all the data needed:
+
+    COMPONENTS=$(cmiw components <path> --quiet 2>/dev/null)
+    GRAPH=$(cmiw graph <path> --quiet 2>/dev/null)
+    SECURITY=$(cmiw security <path> --quiet 2>/dev/null)
+
+If any command fails (exit 1), report the error and stop.
+
+### 2. Analyze the structure
+
+From the JSON data, identify:
+- **Clusters**: Group by directory (from graph.clusters) -> subgraphs
+- **Key components**: Classes, interfaces, exported functions. Filter out
+  file-level components to reduce noise.
+- **Relationships**: Prioritize extends/implements/imports. Only include calls
+  if the diagram would otherwise be sparse.
+- **Circular dependencies**: Highlight in red.
+- **Security grade**: Annotate on diagram.
+
+### 3. Generate the Mermaid diagram
+
+- Fewer than 20 components: `graph TD`
+- 20-50 components: `graph LR`
+- 50+ components: `graph LR` with only classes/interfaces and most-connected
+  functions
+
+### 4. Create the output file
+
+Save as `system-design.md` in the target project root with:
+- Header with project path, component count, date
+- Mermaid diagram in a fenced code block
+- Legend explaining node shapes and edge styles
+- Key metrics: components, relationships, clusters, circular deps, security
+  grade, top 5 hub components
+
+### 5. Present to the user
+
+Show the diagram inline, mention it renders in GitHub and VS Code, and call out
+any circular dependencies as architectural concerns.
+
+## Diagram Quality Rules
+
+- Max 30 visible nodes. Beyond that, show function counts per cluster.
+- Use component names, not IDs.
+- Place infrastructure at bottom, API at top, business logic in middle.
+- Collapse 5+ edges between clusters into a single counted edge.
+
+## Important
+
+- If CMIW is not installed, tell the user: `npm install -g cmiw-cli`
+- Do not invent components or relationships. Only use what CMIW reports.
+- The diagram must be valid Mermaid syntax.
+```
+
+### Writing Your Own Skills
+
+Any agent workflow that consumes CMIW JSON output can be wrapped as a skill. The pattern is:
+
+1. Run a CMIW subcommand with `--quiet` to get clean JSON
+2. Parse the JSON output (the agent does this natively)
+3. Act on the structured data (fix code, generate docs, create diagrams, etc.)
+
+The `cmiw schema <type>` command is useful here -- an agent can call it to learn the output shape before writing parsing logic.
+
+**Skill ideas:**
+- `/cmiw-refactor` -- Find the most complex components and suggest refactoring
+- `/cmiw-docs` -- Generate API documentation from extracted components
+- `/cmiw-review` -- Run security + graph analysis as part of a PR review
+- `/cmiw-onboard` -- Generate a "new developer guide" from graph clusters and component descriptions
+
+---
+
 ## TypeScript/Node.js Library API
 
 For agents that run in a Node.js process, CMIW exports its full analysis pipeline as a library:
