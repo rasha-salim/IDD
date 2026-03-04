@@ -4,6 +4,19 @@ This document explains how coding agents (Claude Code, Cursor, Copilot, custom M
 
 ## Quick Reference
 
+**Design commands** (LLM-powered, require `ANTHROPIC_API_KEY`):
+
+| Command | What it returns | Output | Exit codes |
+|---|---|---|---|
+| `idd design <task>` | Full IDD design (all phases) | JSON or Markdown | 0 success, 1 error |
+| `idd decompose <task>` | Components and assumptions | JSON or Markdown | 0 success, 1 error |
+| `idd options <task>` | Options with pros/cons per component | JSON or Markdown | 0 success, 1 error |
+| `idd decide <task>` | Decision table with rationale | JSON or Markdown | 0 success, 1 error |
+| `idd diagram <task>` | Mermaid architecture diagram | JSON or Markdown | 0 success, 1 error |
+| `idd viewer` | Opens Mermaid viewer in browser | N/A | 0 success, 1 error |
+
+**Analysis commands** (static analysis, no API key needed):
+
 | Command | What it returns | Output | Exit codes |
 |---|---|---|---|
 | `idd components <path>` | Components extracted from source | `IddComponent[]` JSON | 0 success, 1 error |
@@ -332,6 +345,40 @@ idd analyze ./project --skip-llm --format json | jq '.components'
 
 For most agent workflows, prefer the granular subcommands (`components`, `graph`, `security`) over `analyze`. They run faster because they skip unused pipeline phases, and their output is the exact type you need rather than a nested report.
 
+### Design Commands
+
+The design commands require `ANTHROPIC_API_KEY` and accept a task description instead of a path.
+
+**Chaining design phases:**
+
+```bash
+# Phase 1: Decompose
+DECOMPOSITION=$(idd decompose "Add OAuth2 login" -q -f json 2>/dev/null)
+
+# Phase 2: Generate options (pass decomposition from phase 1)
+OPTIONS=$(idd options "Add OAuth2 login" -q -f json --decomposition "$DECOMPOSITION" 2>/dev/null)
+
+# Phase 3: Make decisions (pass options from phase 2)
+DECISIONS=$(idd decide "Add OAuth2 login" -q -f json --options "$OPTIONS" 2>/dev/null)
+
+# Phase 3.5: Generate diagram (pass decisions from phase 3)
+DIAGRAM=$(idd diagram "Add OAuth2 login" -q -f json --decisions "$DECISIONS" 2>/dev/null)
+```
+
+**Single-shot design (all phases at once):**
+
+```bash
+idd design "Add OAuth2 login" -q -f json 2>/dev/null
+```
+
+**Saving design output:**
+
+```bash
+idd design "Add OAuth2 login" -f markdown -o design.md
+```
+
+Each design command outputs JSON (with `-f json`) or Markdown (with `-f markdown`). When chaining, pass the JSON output of one phase as the `--decomposition`, `--options`, or `--decisions` flag of the next phase.
+
 ---
 
 ## Integration Patterns
@@ -431,233 +478,76 @@ if [ "$BRANCH_SCORE" -lt "$MAIN_SCORE" ]; then
 fi
 ```
 
+### Pattern 7: Agent-Driven Design Workflow
+
+An agent walks the user through IDD design phases, presenting each phase and getting confirmation:
+
+```bash
+# Agent runs phase 1 and presents components + assumptions
+DECOMP=$(idd decompose "Add caching layer" -q -f json 2>/dev/null)
+# ... agent presents components, user confirms or modifies ...
+
+# Agent runs phase 2 with confirmed decomposition
+OPTS=$(idd options "Add caching layer" -q -f json --decomposition "$DECOMP" 2>/dev/null)
+# ... agent presents options with pros/cons, user picks ...
+
+# Agent runs phase 3 with confirmed options
+DECISIONS=$(idd decide "Add caching layer" -q -f json --options "$OPTS" 2>/dev/null)
+# ... agent presents decision table, user confirms ...
+
+# Agent generates architecture diagram
+DIAGRAM=$(idd diagram "Add caching layer" -q -f json --decisions "$DECISIONS" 2>/dev/null)
+# ... agent shows Mermaid diagram, offers to save or start implementing ...
+```
+
+### Pattern 8: Design Before Implementation
+
+Use design as a pre-implementation gate:
+
+```bash
+# Generate full design document
+idd design "Refactor auth to use JWT" -f markdown -o design.md -q
+
+# Agent reads the design document and implements according to decisions
+cat design.md
+# ... agent implements based on the design decisions ...
+```
+
 ---
 
 ## Claude Code Skills
 
-IDD ships with two ready-to-use [Claude Code skills](https://docs.anthropic.com/en/docs/claude-code) that turn the CLI into interactive agent workflows. Skills are slash commands that Claude Code executes with full context awareness -- they run IDD, parse the structured output, and act on it.
+IDD ships with 6 ready-to-use [Claude Code skills](https://docs.anthropic.com/en/docs/claude-code) that turn the CLI into interactive agent workflows. Skills are slash commands that Claude Code executes with full context awareness -- they run IDD, parse the structured output, and act on it.
 
 ### Installing the Skills
 
-Copy the skill directories to your Claude Code skills folder:
+Copy the skill files to your Claude Code skills folder:
 
 ```bash
 # User-level (available in all projects)
-mkdir -p ~/.claude/skills/idd-security
-mkdir -p ~/.claude/skills/idd-diagram
-cp docs/skills/idd-security.md ~/.claude/skills/idd-security/SKILL.md
-cp docs/skills/idd-diagram.md ~/.claude/skills/idd-diagram/SKILL.md
+for skill in idd-design idd-analyze idd-review idd-graph idd-security idd-diagram; do
+  mkdir -p ~/.claude/skills/$skill
+  cp docs/skills/$skill.md ~/.claude/skills/$skill/SKILL.md
+done
 ```
 
-Or create them manually using the examples below.
+### Available Skills
 
-### Skill 1: `/idd-security` -- Scan, Report, Fix
+**Design skills:**
 
-Invocation: `/idd-security ./path/to/project`
-
-This skill runs a full security scan, presents findings grouped by severity, and offers to fix them. After applying fixes, it re-scans to verify the issues are resolved.
-
-**Workflow:**
-1. Runs `idd security <path> --quiet`
-2. Checks exit code (0 = clean, 2 = findings)
-3. Parses `SecurityPosture` JSON and presents findings by severity
-4. Asks user which findings to fix (all, critical/high only, specific ones, or skip)
-5. Reads source files, applies fixes based on CWE and recommendation
-6. Re-scans to verify the fixes
-
-**Full SKILL.md:**
-
-```yaml
----
-name: idd-security
-description: Run IDD security analysis on a project, parse findings, and offer
-  to fix them. Use when the user wants to scan a codebase for security vulnerabilities.
----
-```
-
-```markdown
-# IDD Security Scan
-
-Run a security scan on the target project using IDD and act on the results.
-
-## Arguments
-
-The user may provide a path as an argument. If no path is provided, use the
-current working directory (`.`).
-
-## Steps
-
-### 1. Run the security scan
-
-Run the IDD security scanner on the target path:
-
-    idd security <path> --quiet 2>/dev/null
-
-Capture both the JSON output and the exit code.
-
-- **Exit 0**: No security findings. Report that the project is clean and stop.
-- **Exit 1**: Error running IDD. Report the error from stderr and stop.
-- **Exit 2**: Security findings detected. Continue to step 2.
-
-### 2. Parse and present findings
-
-Parse the JSON output (which is a `SecurityPosture` object) and present findings
-grouped by severity in descending order (critical first, then high, medium, low,
-info).
-
-For each finding, show:
-- Severity and title
-- File path and line number
-- Code snippet
-- CWE ID if available
-- Recommendation
-
-Also show the overall score and grade at the top.
-
-### 3. Offer to fix
-
-After presenting findings, ask the user which findings they want to fix. Options:
-- Fix all findings
-- Fix only critical/high severity
-- Fix specific findings by number
-- Skip (just report)
-
-### 4. Apply fixes
-
-For each finding the user wants fixed:
-1. Read the file at the specified path and line
-2. Understand the vulnerability from the finding description and CWE
-3. Apply the recommended fix (use parameterized queries for SQL injection,
-   sanitize input, use path validation, etc.)
-4. Do NOT introduce new issues while fixing
-
-### 5. Re-scan
-
-After applying fixes, run the security scan again to verify:
-
-    idd security <path> --quiet 2>/dev/null
-
-Report the updated score/grade and any remaining findings.
-
-## Important
-
-- Always read the actual source file before attempting a fix.
-- Never suppress or hide findings.
-- Do not disable security rules as a "fix".
-- If IDD is not installed, tell the user to install it: `npm install -g idd-cli`
-```
-
-### Skill 2: `/idd-diagram` -- System Design Visualization
-
-Invocation: `/idd-diagram ./path/to/project`
-
-This skill analyzes a codebase and generates a Mermaid system design diagram with components grouped into layers, relationship edges, circular dependency highlights, and a security grade annotation.
-
-**Workflow:**
-1. Runs `idd components`, `idd graph`, and `idd security` in parallel
-2. Groups components into subgraphs by directory cluster
-3. Selects diagram layout based on project size (TD for small, LR for large)
-4. Generates Mermaid syntax with typed node shapes and labeled edges
-5. Saves as `system-design.md` with metrics and legend
-
-**Node shapes by type:**
-
-| Component Type | Mermaid Shape | Example |
-|---|---|---|
-| Class | `["Name"]` rectangle | `UserService["UserService (class)"]` |
-| Interface | `(("Name"))` circle | `IAuth(("IAuth (interface)"))` |
-| Function | `["name()"]` rectangle | `handleRequest["handleRequest()"]` |
-| Enum | `{{"Name"}}` hexagon | `Status{{"Status (enum)"}}` |
-
-**Edge styles by relationship:**
-
-| Relationship | Mermaid Syntax |
+| Skill | Description |
 |---|---|
-| imports | `-->` solid arrow |
-| extends | `-->\|extends\|` labeled solid |
-| implements | `-.->\|implements\|` labeled dashed |
-| calls | `-->\|calls\|` labeled solid |
+| `/idd-design` | Walk through the full IDD methodology interactively: decompose, options, decide, diagram. Each phase requires user confirmation. |
+| `/idd-diagram` | Generate a Mermaid system design diagram from codebase analysis with components, relationships, clusters, and security annotations. |
 
-**Full SKILL.md:**
+**Analysis skills:**
 
-```yaml
----
-name: idd-diagram
-description: Generate a system design diagram from a codebase using IDD analysis.
-  Use when the user wants to visualize project architecture, component relationships,
-  or system structure.
----
-```
-
-```markdown
-# IDD System Design Diagram
-
-Analyze a codebase with IDD and generate a Mermaid system design diagram showing
-components, relationships, layers, and clusters.
-
-## Arguments
-
-The user may provide:
-- A path as the first argument. If no path is provided, use `.`.
-- An optional focus: "full", "imports", "classes", "security". Default is "full".
-
-## Steps
-
-### 1. Gather data
-
-Run three IDD commands to collect all the data needed:
-
-    COMPONENTS=$(idd components <path> --quiet 2>/dev/null)
-    GRAPH=$(idd graph <path> --quiet 2>/dev/null)
-    SECURITY=$(idd security <path> --quiet 2>/dev/null)
-
-If any command fails (exit 1), report the error and stop.
-
-### 2. Analyze the structure
-
-From the JSON data, identify:
-- **Clusters**: Group by directory (from graph.clusters) -> subgraphs
-- **Key components**: Classes, interfaces, exported functions. Filter out
-  file-level components to reduce noise.
-- **Relationships**: Prioritize extends/implements/imports. Only include calls
-  if the diagram would otherwise be sparse.
-- **Circular dependencies**: Highlight in red.
-- **Security grade**: Annotate on diagram.
-
-### 3. Generate the Mermaid diagram
-
-- Fewer than 20 components: `graph TD`
-- 20-50 components: `graph LR`
-- 50+ components: `graph LR` with only classes/interfaces and most-connected
-  functions
-
-### 4. Create the output file
-
-Save as `system-design.md` in the target project root with:
-- Header with project path, component count, date
-- Mermaid diagram in a fenced code block
-- Legend explaining node shapes and edge styles
-- Key metrics: components, relationships, clusters, circular deps, security
-  grade, top 5 hub components
-
-### 5. Present to the user
-
-Show the diagram inline, mention it renders in GitHub and VS Code, and call out
-any circular dependencies as architectural concerns.
-
-## Diagram Quality Rules
-
-- Max 30 visible nodes. Beyond that, show function counts per cluster.
-- Use component names, not IDs.
-- Place infrastructure at bottom, API at top, business logic in middle.
-- Collapse 5+ edges between clusters into a single counted edge.
-
-## Important
-
-- If IDD is not installed, tell the user: `npm install -g idd-cli`
-- Do not invent components or relationships. Only use what IDD reports.
-- The diagram must be valid Mermaid syntax.
-```
+| Skill | Description |
+|---|---|
+| `/idd-analyze` | Run full codebase analysis with architecture overview, security posture, and knowledge graph stats. Offers deep dives and exports. |
+| `/idd-security` | Scan a project for security vulnerabilities, present findings grouped by severity, offer to fix them, and re-scan to verify. |
+| `/idd-review` | Combined code quality and architecture review: circular deps, hub components, security posture, code quality, and positive findings. |
+| `/idd-graph` | Explore the knowledge graph: dependencies, clusters, circular deps, hub components, structural patterns, and interactive viewer. |
 
 ### Writing Your Own Skills
 
@@ -672,39 +562,60 @@ The `idd schema <type>` command is useful here -- an agent can call it to learn 
 **Skill ideas:**
 - `/idd-refactor` -- Find the most complex components and suggest refactoring
 - `/idd-docs` -- Generate API documentation from extracted components
-- `/idd-review` -- Run security + graph analysis as part of a PR review
 - `/idd-onboard` -- Generate a "new developer guide" from graph clusters and component descriptions
 
 ---
 
 ## TypeScript/Node.js Library API
 
-For agents that run in a Node.js process, IDD exports its full analysis pipeline as a library:
+For agents that run in a Node.js process, IDD exports its full analysis and design pipeline as a library:
 
 ```typescript
 import {
+  // Analysis functions
   detectLanguage,
   createAnalyzer,
   buildGraph,
   loadSecurityConfig,
+  // Design functions
+  runDecompose,
+  runOptions,
+  runDecide,
+  runDiagram,
+  runFullDesign,
+  // Design formatters
+  formatDecompose,
+  formatOptions,
+  formatDecide,
+  formatDiagram,
+  formatDesignDocument,
 } from 'idd-cli';
 
-// Components only
+// Analysis: Components only
 const language = detectLanguage('./project');
 const analyzer = await createAnalyzer(language);
 await analyzer.loadProject('./project');
 const components = analyzer.extractComponents();
 
-// Graph
+// Analysis: Graph
 const relationships = analyzer.buildRelationships(components);
 const graph = buildGraph(components, relationships);
 
-// Security
+// Analysis: Security
 const config = loadSecurityConfig({ targetDir: './project' });
 const security = analyzer.analyzeSecurityPosture(config);
+
+// Design: Run individual phases
+const decomposition = await runDecompose('Add user authentication');
+const options = await runOptions('Add user authentication', decomposition);
+const decisions = await runDecide('Add user authentication', options);
+const diagram = await runDiagram('Add user authentication', decisions);
+
+// Design: Format as markdown
+const markdown = formatDesignDocument(decomposition, options, decisions, diagram);
 ```
 
-Each function returns typed objects (`IddComponent[]`, `KnowledgeGraph`, `SecurityPosture`) that match the JSON output of the CLI subcommands exactly.
+Each function returns typed objects (`IddComponent[]`, `KnowledgeGraph`, `SecurityPosture`) that match the JSON output of the CLI subcommands exactly. Design functions return `DecomposeResult`, `OptionsResult`, `DecideResult`, and `DiagramResult` types.
 
 ---
 
