@@ -4,19 +4,6 @@ This document explains how coding agents (Claude Code, Cursor, Copilot, custom M
 
 ## Quick Reference
 
-**Design commands** (LLM-powered, require `ANTHROPIC_API_KEY`):
-
-| Command | What it returns | Output | Exit codes |
-|---|---|---|---|
-| `idd design <task>` | Full IDD design (all phases) | JSON or Markdown | 0 success, 1 error |
-| `idd decompose <task>` | Components and assumptions | JSON or Markdown | 0 success, 1 error |
-| `idd options <task>` | Options with pros/cons per component | JSON or Markdown | 0 success, 1 error |
-| `idd decide <task>` | Decision table with rationale | JSON or Markdown | 0 success, 1 error |
-| `idd diagram <task>` | Mermaid architecture diagram | JSON or Markdown | 0 success, 1 error |
-| `idd viewer` | Opens Mermaid viewer in browser | N/A | 0 success, 1 error |
-
-**Analysis commands** (static analysis, no API key needed):
-
 | Command | What it returns | Output | Exit codes |
 |---|---|---|---|
 | `idd components <path>` | Components extracted from source | `IddComponent[]` JSON | 0 success, 1 error |
@@ -345,40 +332,6 @@ idd analyze ./project --skip-llm --format json | jq '.components'
 
 For most agent workflows, prefer the granular subcommands (`components`, `graph`, `security`) over `analyze`. They run faster because they skip unused pipeline phases, and their output is the exact type you need rather than a nested report.
 
-### Design Commands
-
-The design commands require `ANTHROPIC_API_KEY` and accept a task description instead of a path.
-
-**Chaining design phases:**
-
-```bash
-# Phase 1: Decompose
-DECOMPOSITION=$(idd decompose "Add OAuth2 login" -q -f json 2>/dev/null)
-
-# Phase 2: Generate options (pass decomposition from phase 1)
-OPTIONS=$(idd options "Add OAuth2 login" -q -f json --decomposition "$DECOMPOSITION" 2>/dev/null)
-
-# Phase 3: Make decisions (pass options from phase 2)
-DECISIONS=$(idd decide "Add OAuth2 login" -q -f json --options "$OPTIONS" 2>/dev/null)
-
-# Phase 3.5: Generate diagram (pass decisions from phase 3)
-DIAGRAM=$(idd diagram "Add OAuth2 login" -q -f json --decisions "$DECISIONS" 2>/dev/null)
-```
-
-**Single-shot design (all phases at once):**
-
-```bash
-idd design "Add OAuth2 login" -q -f json 2>/dev/null
-```
-
-**Saving design output:**
-
-```bash
-idd design "Add OAuth2 login" -f markdown -o design.md
-```
-
-Each design command outputs JSON (with `-f json`) or Markdown (with `-f markdown`). When chaining, pass the JSON output of one phase as the `--decomposition`, `--options`, or `--decisions` flag of the next phase.
-
 ---
 
 ## Integration Patterns
@@ -478,41 +431,6 @@ if [ "$BRANCH_SCORE" -lt "$MAIN_SCORE" ]; then
 fi
 ```
 
-### Pattern 7: Agent-Driven Design Workflow
-
-An agent walks the user through IDD design phases, presenting each phase and getting confirmation:
-
-```bash
-# Agent runs phase 1 and presents components + assumptions
-DECOMP=$(idd decompose "Add caching layer" -q -f json 2>/dev/null)
-# ... agent presents components, user confirms or modifies ...
-
-# Agent runs phase 2 with confirmed decomposition
-OPTS=$(idd options "Add caching layer" -q -f json --decomposition "$DECOMP" 2>/dev/null)
-# ... agent presents options with pros/cons, user picks ...
-
-# Agent runs phase 3 with confirmed options
-DECISIONS=$(idd decide "Add caching layer" -q -f json --options "$OPTS" 2>/dev/null)
-# ... agent presents decision table, user confirms ...
-
-# Agent generates architecture diagram
-DIAGRAM=$(idd diagram "Add caching layer" -q -f json --decisions "$DECISIONS" 2>/dev/null)
-# ... agent shows Mermaid diagram, offers to save or start implementing ...
-```
-
-### Pattern 8: Design Before Implementation
-
-Use design as a pre-implementation gate:
-
-```bash
-# Generate full design document
-idd design "Refactor auth to use JWT" -f markdown -o design.md -q
-
-# Agent reads the design document and implements according to decisions
-cat design.md
-# ... agent implements based on the design decisions ...
-```
-
 ---
 
 ## Claude Code Skills
@@ -533,11 +451,11 @@ done
 
 ### Available Skills
 
-**Design skills:**
+**Design skill:**
 
 | Skill | Description |
 |---|---|
-| `/idd-design` | Walk through the full IDD methodology interactively: decompose, options, decide, diagram. Each phase requires user confirmation. |
+| `/idd-design` | Walk through the full IDD methodology interactively using agent reasoning: decompose, options, decide, diagram. No CLI commands or API key required. |
 | `/idd-diagram` | Generate a Mermaid system design diagram from codebase analysis with components, relationships, clusters, and security annotations. |
 
 **Analysis skills:**
@@ -568,7 +486,7 @@ The `idd schema <type>` command is useful here -- an agent can call it to learn 
 
 ## TypeScript/Node.js Library API
 
-For agents that run in a Node.js process, IDD exports its full analysis and design pipeline as a library:
+For agents that run in a Node.js process, IDD exports its analysis pipeline as a library:
 
 ```typescript
 import {
@@ -576,19 +494,16 @@ import {
   detectLanguage,
   createAnalyzer,
   buildGraph,
-  loadSecurityConfig,
-  // Design functions
-  runDecompose,
-  runOptions,
-  runDecide,
-  runDiagram,
-  runFullDesign,
-  // Design formatters
-  formatDecompose,
-  formatOptions,
-  formatDecide,
-  formatDiagram,
-  formatDesignDocument,
+  analyzeSecurityPosture,
+  loadProject,
+  extractComponents,
+  buildRelationships,
+  assembleReport,
+  // Analysis formatters
+  formatJson,
+  formatSarif,
+  formatMarkdown,
+  formatTerminal,
 } from 'idd-cli';
 
 // Analysis: Components only
@@ -604,18 +519,9 @@ const graph = buildGraph(components, relationships);
 // Analysis: Security
 const config = loadSecurityConfig({ targetDir: './project' });
 const security = analyzer.analyzeSecurityPosture(config);
-
-// Design: Run individual phases
-const decomposition = await runDecompose('Add user authentication');
-const options = await runOptions('Add user authentication', decomposition);
-const decisions = await runDecide('Add user authentication', options);
-const diagram = await runDiagram('Add user authentication', decisions);
-
-// Design: Format as markdown
-const markdown = formatDesignDocument(decomposition, options, decisions, diagram);
 ```
 
-Each function returns typed objects (`IddComponent[]`, `KnowledgeGraph`, `SecurityPosture`) that match the JSON output of the CLI subcommands exactly. Design functions return `DecomposeResult`, `OptionsResult`, `DecideResult`, and `DiagramResult` types.
+Each function returns typed objects (`IddComponent[]`, `KnowledgeGraph`, `SecurityPosture`) that match the JSON output of the CLI subcommands exactly.
 
 ---
 

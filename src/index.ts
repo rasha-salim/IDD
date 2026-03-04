@@ -1,9 +1,9 @@
 /**
  * IDD - Intent-Driven Development CLI.
- * Design solutions first (IDD phases), then analyze and assess code.
+ * Analyze and assess code with structured output.
  *
  * Intent: Public library API for programmatic usage.
- * Re-exports core analysis functions, design functions, and types.
+ * Re-exports core analysis functions and types.
  */
 
 export * from './types/index.js';
@@ -20,18 +20,3 @@ export { formatJson } from './output/json-formatter.js';
 export { formatSarif } from './output/sarif-formatter.js';
 export { formatMarkdown } from './output/markdown-formatter.js';
 export { formatTerminal } from './output/terminal-formatter.js';
-export {
-  formatDecompose,
-  formatOptions,
-  formatDecide,
-  formatDiagram,
-  formatDesignDocument,
-} from './output/design-formatter.js';
-export {
-  runDecompose,
-  runOptions,
-  runDecide,
-  runDiagram,
-  runFullDesign,
-  parseJsonResponse,
-} from './llm/design.js';

@@ -7,6 +7,8 @@ description: Run the full IDD methodology interactively -- decompose a task, exp
 
 Walk the user through the full Intent-Driven Development design methodology, phase by phase. Each phase builds on the previous one. The user reviews and confirms before moving to the next phase.
 
+No API keys or external tools are required. You perform all reasoning directly.
+
 ## Arguments
 
 The user provides a task description as the argument. Example: `/idd-design "Add user authentication with OAuth2"`
@@ -15,61 +17,97 @@ The user provides a task description as the argument. Example: `/idd-design "Add
 
 ### 1. Decompose (Phase 1)
 
-Run the IDD decompose command to break the task into components and surface assumptions:
+Break the task into components and surface hidden assumptions.
+
+Present to the user:
 
 ```
-DECOMPOSITION=$(idd decompose "<task>" -q -f json 2>/dev/null)
+## Task: [restate what the user wants in one sentence]
+
+## Components
+1. [Component name] -- [what it does]
+2. [Component name] -- [what it does]
+3. ...
+
+## Assumptions I'm making (correct me if wrong)
+- [anything you're inferring that wasn't explicitly stated]
+- [default behaviors you'd choose without asking]
+- [scope boundaries: what you think is included vs excluded]
 ```
 
-Present the result to the user:
-- List each component with its name and description
-- List all assumptions being made
-- Ask the user to confirm, modify components, or correct assumptions
+Rules:
+- If the task is a single component with no meaningful choices, say so and skip to Phase 4
+- Never hide assumptions. If you're choosing between two reasonable interpretations, surface it
+- List assumptions as falsifiable statements the human can correct
 
-Wait for the user to confirm before proceeding.
+Ask the user to confirm, modify components, or correct assumptions. Wait for confirmation before proceeding.
 
 ### 2. Options (Phase 2)
 
-Run the IDD options command, passing the confirmed decomposition:
+For each component where multiple valid approaches exist, present options. Not every component needs this -- only where the choice materially affects the result.
+
+Present to the user:
 
 ```
-OPTIONS=$(idd options "<task>" -q -f json --decomposition '<confirmed_decomposition_json>' 2>/dev/null)
+## [Component name]
+
+### Option A: [name]
+How: [1-2 sentence description]
++ [concrete advantage specific to this task]
++ [concrete advantage specific to this task]
+- [concrete disadvantage specific to this task]
+- [concrete disadvantage specific to this task]
+
+### Option B: [name]
+How: [1-2 sentence description]
++ ...
+- ...
+
+### Recommendation: [which and why, in one sentence]
 ```
 
-Present the result to the user:
-- For each component that has options, show:
-  - Option name and description
-  - Pros (concrete advantages)
-  - Cons (concrete disadvantages)
-  - Recommendation with reasoning
-- Ask the user to confirm the recommendations or choose differently
+Rules:
+- Maximum 3 options per component. Pre-filter to the most relevant
+- Pros and cons must be concrete and specific. "Scales better" is useless. "Handles 10k+ orders without memory issues" is useful
+- Always include a recommendation. Do not artificially balance options to seem neutral
+- Consider: dependencies, complexity, maintenance burden, security implications, performance
 
-Wait for the user to confirm before proceeding.
+Ask the user to confirm recommendations or choose differently. Wait for confirmation before proceeding.
 
 ### 3. Decide (Phase 3)
 
-Run the IDD decide command, passing the confirmed options:
+Summarize all decisions in a table.
+
+Present to the user:
 
 ```
-DECISIONS=$(idd decide "<task>" -q -f json --options '<confirmed_options_json>' 2>/dev/null)
+## Proposed approach
+
+| Component | Choice | Reason |
+|-----------|--------|--------|
+| Auth | Session-based | Personal app, simplicity wins |
+| Storage | SQLite | Single user, no server needed |
+| ... | ... | ... |
+
+Anything you'd change before I start building?
 ```
 
-Present the result to the user:
-- Show a decision table: Component | Choice | Reason
-- Highlight any cascading impacts between decisions
-- Ask the user to confirm the approach
+Rules:
+- If the user changes a choice, check whether it affects other components. Flag cascading impacts
+- If the user says "just go with your recommendations," proceed
 
-Wait for the user to confirm before proceeding.
+Wait for confirmation before proceeding.
 
 ### 4. Diagram (Phase 3.5)
 
-Run the IDD diagram command, passing the confirmed decisions:
+Generate a Mermaid architecture diagram based on the confirmed decisions.
 
-```
-DIAGRAM=$(idd diagram "<task>" -q -f json --decisions '<confirmed_decisions_json>' 2>/dev/null)
-```
+The diagram should show:
+- Components as nodes (use appropriate shapes: rectangles for services, circles for interfaces, hexagons for data stores)
+- Relationships between components as labeled edges
+- Grouping into subgraphs where logical (e.g., frontend/backend/database layers)
 
-Present the Mermaid diagram inline so the user can see the architecture visually.
+Present the Mermaid diagram inline.
 
 ### 5. Save and next steps
 
@@ -87,9 +125,9 @@ If saving, write a markdown file that includes:
 
 ## Important
 
-- **Requires ANTHROPIC_API_KEY** to be set. If not set, tell the user to configure it.
+- **No API keys or CLI tools required.** You perform all design reasoning directly.
 - **Do not skip phases.** Each phase builds on the previous one. The user MUST review each phase before proceeding.
 - **Never generate code during the design phase.** The purpose is to make decisions explicit before implementation.
-- **For single-shot design** (no interaction needed), use: `idd design "<task>" -q -f json`
-- If IDD is not installed, tell the user to install it: `npm install -g idd-cli`
-- If any command fails (exit 1), report the error from stderr and stop.
+- **Do not present false choices.** If one option is clearly wrong for the use case, do not list it to seem balanced.
+- **Do not add features that were not discussed.** If the user asked for authentication, do not add rate limiting and audit logging unless it is a security necessity you should flag.
+- For standalone CLI usage (outside an agent), users can run `idd design "<task>"` which requires ANTHROPIC_API_KEY.

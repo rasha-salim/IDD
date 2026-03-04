@@ -1,20 +1,12 @@
 # IDD
 
-IDD enforces intent-driven development: no jumping to code. Decompose, explore options, decide, then implement and verify. The CLI is the methodology's runtime.
+IDD is an analysis CLI for coding agents and humans who build products methodically. It extracts components, maps relationships, builds knowledge graphs, and scans for security vulnerabilities -- all with structured, machine-readable output.
 
-Built for coding agents and humans who build products methodically.
+The IDD methodology (decompose, options, decide, implement) lives in the `/idd-design` Claude Code skill, which uses agent reasoning directly rather than CLI commands.
 
 ## What It Does
 
-### Design Phase (LLM-Powered)
-
-- **Decompose** -- Break a task into components and surface hidden assumptions before any code is written
-- **Options** -- For each component, generate implementation options with concrete pros, cons, and a recommendation
-- **Decide** -- Produce a decision table summarizing the chosen approach for each component with rationale
-- **Diagram** -- Generate a Mermaid architecture diagram from the design decisions
-- **Design** -- Run all four phases in a single shot for non-interactive workflows
-
-### Analysis Phase (Static Analysis)
+### Analysis (Static Analysis)
 
 - **Component Extraction** -- Parses your codebase with ts-morph (TypeScript/JS) or tree-sitter (Python) to identify classes, functions, interfaces, types, enums, and their metadata
 - **Relationship Mapping** -- Traces imports, class inheritance, interface implementations, and function calls across files
@@ -27,7 +19,7 @@ Built for coding agents and humans who build products methodically.
 ## Requirements
 
 - Node.js >= 18.0.0
-- `ANTHROPIC_API_KEY` environment variable (required for design commands and LLM enrichment)
+- `ANTHROPIC_API_KEY` environment variable (optional, only for LLM enrichment in `analyze`)
 
 ## Installation
 
@@ -48,20 +40,7 @@ To uninstall the global command later: `npm unlink -g idd`
 
 ### Commands
 
-IDD provides 11 commands across two groups:
-
-**Design commands** (LLM-powered, require `ANTHROPIC_API_KEY`):
-
-```
-idd design <task>        Single-shot IDD design: decompose, options, decide, diagram
-idd decompose <task>     Phase 1: Break task into components and assumptions
-idd options <task>       Phase 2: Generate options with pros/cons for each component
-idd decide <task>        Phase 3: Produce decision table from options analysis
-idd diagram <task>       Phase 3.5: Generate Mermaid architecture diagram from decisions
-idd viewer               Open the bundled Mermaid viewer in the browser
-```
-
-**Analysis commands** (static analysis, no API key needed):
+IDD provides 5 analysis commands:
 
 ```
 idd analyze <path>       Full analysis pipeline (components + graph + security + architecture)
@@ -69,31 +48,6 @@ idd components <path>    Extract components only -> JSON array
 idd graph <path>         Build knowledge graph -> JSON object
 idd security <path>      Security analysis only -> JSON object
 idd schema <type>        Output JSON Schema for a type (no project needed)
-```
-
-### Design Workflow
-
-The design commands chain together, each phase feeding the next:
-
-```bash
-# Phase 1: Decompose the task
-DECOMPOSITION=$(idd decompose "Add OAuth2 login" -q -f json 2>/dev/null)
-
-# Phase 2: Generate options using decomposition output
-OPTIONS=$(idd options "Add OAuth2 login" -q -f json --decomposition "$DECOMPOSITION" 2>/dev/null)
-
-# Phase 3: Make decisions using options output
-DECISIONS=$(idd decide "Add OAuth2 login" -q -f json --options "$OPTIONS" 2>/dev/null)
-
-# Phase 3.5: Generate architecture diagram using decisions
-idd diagram "Add OAuth2 login" -q -f markdown --decisions "$DECISIONS"
-```
-
-Or run all phases at once:
-
-```bash
-# Single-shot: runs decompose -> options -> decide -> diagram automatically
-idd design "Add OAuth2 login" -f markdown -o design.md
 ```
 
 ### CLI Examples
@@ -161,24 +115,6 @@ idd schema report
 | `--min-severity <level>` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` | all |
 | `--disable-rules <ids>` | Comma-separated rule IDs to disable | none |
 
-**Design command options** (available on `design`, `decompose`, `options`, `decide`, `diagram`):
-
-| Option | Description | Default |
-|---|---|---|
-| `<task>` | Task description (quoted string) | required |
-| `-f, --format <format>` | Output format: `json`, `markdown` | `markdown` |
-| `-o, --output <path>` | Write output to file instead of stdout | stdout |
-| `-v, --verbose` | Enable verbose debug logging | `false` |
-| `-q, --quiet` | Suppress progress output | `false` |
-
-**Chaining options** (for piping design phases):
-
-| Option | Command | Description |
-|---|---|---|
-| `--decomposition <json>` | `options` | JSON output from decompose phase |
-| `--options <json>` | `decide` | JSON output from options phase |
-| `--decisions <json>` | `diagram` | JSON output from decide phase |
-
 ### Exit Codes
 
 | Code | Meaning | Commands |
@@ -203,23 +139,6 @@ IDD is designed to be a first-class tool for coding agents (Claude Code, Cursor,
 - **Security exit codes**: `idd security` exits with code 2 if findings exist, enabling simple `if` checks without JSON parsing.
 
 ### Example Agent Workflows
-
-**Design workflow (interactive):**
-```bash
-# Agent runs each phase, presents results, gets user confirmation
-DECOMP=$(idd decompose "Add caching layer" -q -f json 2>/dev/null)
-# ... present to user, get confirmation ...
-OPTS=$(idd options "Add caching layer" -q -f json --decomposition "$DECOMP" 2>/dev/null)
-# ... present options, get choices ...
-DECISIONS=$(idd decide "Add caching layer" -q -f json --options "$OPTS" 2>/dev/null)
-# ... present decision table, get confirmation ...
-idd diagram "Add caching layer" -q -f json --decisions "$DECISIONS" 2>/dev/null
-```
-
-**Design workflow (single-shot):**
-```bash
-idd design "Add caching layer" -q -f json 2>/dev/null
-```
 
 **Get component names:**
 ```bash
@@ -260,9 +179,9 @@ idd analyze ./project --skip-llm --format json | jq '.security.grade'
 
 IDD includes 6 ready-to-use Claude Code skills for interactive agent workflows:
 
-**Design skills:**
+**Design skill:**
 
-- **`/idd-design`** -- Walk through the full IDD methodology interactively: decompose, options, decide, diagram
+- **`/idd-design`** -- Walk through the full IDD methodology interactively using agent reasoning: decompose, options, decide, diagram. No CLI commands or API key required.
 - **`/idd-diagram`** -- Generate a Mermaid system design diagram from codebase analysis
 
 **Analysis skills:**
@@ -276,7 +195,7 @@ Install them by copying from `docs/skills/` to `~/.claude/skills/`. See [docs/ag
 
 ### Library API
 
-All analysis and design functions are available for programmatic use:
+All analysis functions are available for programmatic use:
 
 ```typescript
 import {
@@ -294,18 +213,6 @@ import {
   formatSarif,
   formatMarkdown,
   formatTerminal,
-  // Design functions
-  runDecompose,
-  runOptions,
-  runDecide,
-  runDiagram,
-  runFullDesign,
-  // Design formatters
-  formatDecompose,
-  formatOptions,
-  formatDecide,
-  formatDiagram,
-  formatDesignDocument,
 } from 'idd-cli';
 ```
 
@@ -534,12 +441,6 @@ src/
       graph.ts                  # Build knowledge graph -> JSON
       security.ts               # Security analysis -> JSON (exit code 2)
       schema.ts                 # Output JSON Schema for types
-      design.ts                 # Single-shot full IDD design
-      decompose.ts              # Phase 1: Decompose task into components
-      options-cmd.ts            # Phase 2: Generate implementation options
-      decide.ts                 # Phase 3: Decision table from options
-      diagram.ts                # Phase 3.5: Mermaid architecture diagram
-      viewer.ts                 # Open bundled Mermaid viewer in browser
   analyzers/
     typescript/
       index.ts                  # TypeScriptAnalyzer (wraps ts-morph)
@@ -574,13 +475,11 @@ src/
     client.ts                   # Anthropic SDK wrapper
     prompts.ts                  # Prompt templates for Claude
     enrichment.ts               # LLM enrichment orchestrator
-    design.ts                   # Design phase executor (decompose, options, decide, diagram)
   output/
     json-formatter.ts           # JSON output
     sarif-formatter.ts          # SARIF 2.1.0 output
     markdown-formatter.ts       # Markdown output
     terminal-formatter.ts       # Chalk-colored terminal output
-    design-formatter.ts         # Design phase markdown formatters
   types/
     components.ts               # Component/relationship types and enums
     graph.ts                    # Graph node/edge/cluster types
@@ -588,7 +487,6 @@ src/
     architecture.ts             # Layer/pattern/decision types
     report.ts                   # IddReport top-level schema
     config.ts                   # CLI configuration types
-    design.ts                   # Design phase output types
     index.ts                    # Re-exports
   utils/
     logger.ts                   # Structured logging (debug/info/warn/error)
@@ -596,8 +494,6 @@ src/
     errors.ts                   # IddError, ProjectLoadError, AnalysisError, LlmError
     git.ts                      # Git clone wrapper (simple-git)
   index.ts                      # Library API exports
-  assets/
-    idd-viewer.html             # Bundled Mermaid diagram viewer
 bin/
   idd.js                       # CLI entry point (shebang wrapper)
 tests/
@@ -615,7 +511,6 @@ tests/
   integration/
     analyze-command.test.ts     # Full pipeline tests
     subcommands.test.ts         # Subcommand tests (components, graph, security, schema)
-    design-commands.test.ts     # Design command tests (decompose, options, decide, diagram)
 ```
 
 ## Development
@@ -639,7 +534,7 @@ npm run build
 
 ## Environment Setup
 
-Copy `.env.example` to `.env` and set your API key:
+Copy `.env.example` to `.env` and set your API key (optional, only needed for LLM enrichment):
 
 ```bash
 cp .env.example .env
@@ -678,5 +573,4 @@ npm install -g idd-cli
 npx idd-cli analyze ./my-project --skip-llm
 npx idd-cli components ./my-project
 npx idd-cli security ./my-project
-npx idd-cli design "Add user authentication" -f markdown
 ```

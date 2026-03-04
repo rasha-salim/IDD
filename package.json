@@ -1,7 +1,7 @@
 {
   "name": "idd-cli",
-  "version": "0.2.0",
-  "description": "CLI tool that analyzes TypeScript/JavaScript and Python codebases to generate knowledge graphs, system design analysis, and security assessments",
+  "version": "0.3.0",
+  "description": "CLI tool that analyzes TypeScript/JavaScript and Python codebases to generate knowledge graphs, component extraction, and security assessments",
   "type": "module",
   "bin": {
     "idd": "./bin/idd.js"
@@ -20,8 +20,7 @@
   },
   "files": [
     "dist/",
-    "bin/",
-    "assets/"
+    "bin/"
   ],
   "license": "MIT",
   "dependencies": {

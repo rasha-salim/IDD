@@ -9,4 +9,3 @@ export * from './security.js';
 export * from './architecture.js';
 export * from './report.js';
 export * from './config.js';
-export * from './design.js';
