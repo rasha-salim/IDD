@@ -1,6 +1,6 @@
 {
   "name": "idd-cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "CLI tool that analyzes TypeScript/JavaScript and Python codebases to generate knowledge graphs, component extraction, and security assessments",
   "type": "module",
   "bin": {
