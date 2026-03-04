@@ -5,7 +5,7 @@ import { exec } from 'child_process';
 import { readFileSync } from 'fs';
 import { join, resolve } from 'path';
 
-// Hardcoded secrets (cmiw-sec-004)
+// Hardcoded secrets (idd-sec-004)
 const apiKey = "sk_live_abcdefghijklmnopqrstuvwxyz1234567890";
 const password = "SuperSecretPassword123!@#";
 
@@ -20,9 +20,9 @@ interface App {
 declare const app: App;
 declare const db: { query: (sql: string) => Promise<any> };
 
-// Missing auth on route (cmiw-sec-003)
+// Missing auth on route (idd-sec-003)
 app.get('/api/users', (req: Request, res: Response) => {
-  // SQL Injection via template literal (cmiw-sec-002)
+  // SQL Injection via template literal (idd-sec-002)
   // Data-flow: req.params.id -> userId -> template literal -> db.query()
   const userId = req.params.id;
   const query = `SELECT * FROM users WHERE id = ${userId}`;
@@ -32,7 +32,7 @@ app.get('/api/users', (req: Request, res: Response) => {
   res.send('ok');
 });
 
-// Command injection (cmiw-sec-006)
+// Command injection (idd-sec-006)
 // Data-flow: req.body.command -> command -> template literal -> exec()
 app.post('/api/run', (req: Request, res: Response) => {
   const command = req.body.command;
@@ -41,7 +41,7 @@ app.post('/api/run', (req: Request, res: Response) => {
   });
 });
 
-// Path traversal (cmiw-sec-007)
+// Path traversal (idd-sec-007)
 // Data-flow: req.query.path -> fs.readFileSync argument
 app.get('/api/files', (req: Request, res: Response) => {
   const filename = req.query.name;
@@ -49,7 +49,7 @@ app.get('/api/files', (req: Request, res: Response) => {
   res.send(content);
 });
 
-// Unsafe eval (cmiw-sec-005)
+// Unsafe eval (idd-sec-005)
 function processInput(input: string) {
   const result = eval(input);
   return result;

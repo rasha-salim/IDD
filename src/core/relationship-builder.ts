@@ -7,8 +7,8 @@
 import { Project, SourceFile, SyntaxKind, Node } from 'ts-morph';
 import {
   RelationshipType,
-  type CmiwComponent,
-  type CmiwRelationship,
+  type IddComponent,
+  type IddRelationship,
 } from '../types/components.js';
 import { generateComponentId, generateRelationshipId } from '../utils/id-generator.js';
 import { logger } from '../utils/logger.js';
@@ -21,10 +21,10 @@ import { logger } from '../utils/logger.js';
  */
 export function buildRelationships(
   project: Project,
-  components: CmiwComponent[],
-): CmiwRelationship[] {
+  components: IddComponent[],
+): IddRelationship[] {
   const componentIndex = buildComponentIndex(components);
-  const relationships = new Map<string, CmiwRelationship>();
+  const relationships = new Map<string, IddRelationship>();
 
   for (const sourceFile of project.getSourceFiles()) {
     const filePath = sourceFile.getFilePath();
@@ -42,10 +42,10 @@ export function buildRelationships(
   return result;
 }
 
-type ComponentIndex = Map<string, CmiwComponent>;
+type ComponentIndex = Map<string, IddComponent>;
 
-function buildComponentIndex(components: CmiwComponent[]): ComponentIndex {
-  const index = new Map<string, CmiwComponent>();
+function buildComponentIndex(components: IddComponent[]): ComponentIndex {
+  const index = new Map<string, IddComponent>();
   for (const comp of components) {
     index.set(comp.id, comp);
   }
@@ -57,22 +57,22 @@ function findComponentByFileAndName(
   filePath: string,
   name: string,
   type: string,
-): CmiwComponent | undefined {
+): IddComponent | undefined {
   const id = generateComponentId(type, filePath, name);
   return index.get(id);
 }
 
-function findFileComponent(index: ComponentIndex, filePath: string, baseName: string): CmiwComponent | undefined {
+function findFileComponent(index: ComponentIndex, filePath: string, baseName: string): IddComponent | undefined {
   const id = generateComponentId('file', filePath, baseName);
   return index.get(id);
 }
 
 function addRelationship(
-  relationships: Map<string, CmiwRelationship>,
+  relationships: Map<string, IddRelationship>,
   sourceId: string,
   targetId: string,
   type: RelationshipType,
-  metadata?: CmiwRelationship['metadata'],
+  metadata?: IddRelationship['metadata'],
 ): void {
   const id = generateRelationshipId(sourceId, targetId, type);
   if (!relationships.has(id)) {
@@ -83,7 +83,7 @@ function addRelationship(
 function addImportRelationships(
   sourceFile: SourceFile,
   index: ComponentIndex,
-  relationships: Map<string, CmiwRelationship>,
+  relationships: Map<string, IddRelationship>,
 ): void {
   const srcPath = sourceFile.getFilePath();
   const srcBaseName = sourceFile.getBaseName();
@@ -114,7 +114,7 @@ function addImportRelationships(
 function addClassHierarchy(
   sourceFile: SourceFile,
   index: ComponentIndex,
-  relationships: Map<string, CmiwRelationship>,
+  relationships: Map<string, IddRelationship>,
 ): void {
   const filePath = sourceFile.getFilePath();
 
@@ -167,7 +167,7 @@ function addClassHierarchy(
 function addCallRelationships(
   sourceFile: SourceFile,
   index: ComponentIndex,
-  relationships: Map<string, CmiwRelationship>,
+  relationships: Map<string, IddRelationship>,
 ): void {
   const filePath = sourceFile.getFilePath();
 
@@ -175,7 +175,7 @@ function addCallRelationships(
     if (!Node.isCallExpression(node)) return;
 
     const expression = node.getExpression();
-    let callerComp: CmiwComponent | undefined;
+    let callerComp: IddComponent | undefined;
 
     // Find the containing function or class method
     const containingFunction = node.getFirstAncestorByKind(SyntaxKind.FunctionDeclaration);
@@ -210,7 +210,7 @@ function addCallRelationships(
       const declFile = decl.getSourceFile().getFilePath();
       if (declFile.includes('node_modules')) return;
 
-      let targetComp: CmiwComponent | undefined;
+      let targetComp: IddComponent | undefined;
 
       if (Node.isFunctionDeclaration(decl)) {
         const fnName = decl.getName();

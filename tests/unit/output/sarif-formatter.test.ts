@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { formatSarif } from '../../../src/output/sarif-formatter.js';
-import type { CmiwReport } from '../../../src/types/report.js';
+import type { IddReport } from '../../../src/types/report.js';
 
-function createMockReport(): CmiwReport {
+function createMockReport(): IddReport {
   return {
     metadata: {
       version: '0.1.0',
@@ -24,7 +24,7 @@ function createMockReport(): CmiwReport {
       findings: [
         {
           id: 'finding-1',
-          ruleId: 'cmiw-sec-002',
+          ruleId: 'idd-sec-002',
           severity: 'critical',
           title: 'SQL Injection',
           description: 'SQL injection found',
@@ -38,7 +38,7 @@ function createMockReport(): CmiwReport {
         },
       ],
       rules: [
-        { id: 'cmiw-sec-002', name: 'SQL Injection', description: 'Detects SQL injection', severity: 'critical' },
+        { id: 'idd-sec-002', name: 'SQL Injection', description: 'Detects SQL injection', severity: 'critical' },
       ],
       summary: '1 finding',
     },
@@ -67,7 +67,7 @@ describe('formatSarif', () => {
     const report = createMockReport();
     const output = formatSarif(report);
     const parsed = JSON.parse(output);
-    expect(parsed.runs[0].tool.driver.name).toBe('cmiw');
+    expect(parsed.runs[0].tool.driver.name).toBe('idd');
   });
 
   it('should include findings as results', () => {
@@ -75,7 +75,7 @@ describe('formatSarif', () => {
     const output = formatSarif(report);
     const parsed = JSON.parse(output);
     expect(parsed.runs[0].results.length).toBe(1);
-    expect(parsed.runs[0].results[0].ruleId).toBe('cmiw-sec-002');
+    expect(parsed.runs[0].results[0].ruleId).toBe('idd-sec-002');
   });
 
   it('should map severity to SARIF levels', () => {

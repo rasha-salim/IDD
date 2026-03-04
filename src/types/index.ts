@@ -1,5 +1,5 @@
 /**
- * Intent: Central re-export for all CMIW types.
+ * Intent: Central re-export for all IDD types.
  * All type definitions are imported and re-exported from here.
  */
 
@@ -9,3 +9,4 @@ export * from './security.js';
 export * from './architecture.js';
 export * from './report.js';
 export * from './config.js';
+export * from './design.js';

@@ -10,7 +10,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, resolve } from 'node:path';
 import Parser from 'web-tree-sitter';
 import type { LanguageAnalyzer } from '../../core/language-analyzer.js';
-import type { CmiwComponent, CmiwRelationship } from '../../types/components.js';
+import type { IddComponent, IddRelationship } from '../../types/components.js';
 import type { SecurityPosture, Severity } from '../../types/security.js';
 import type { SecurityConfig } from '../../types/config.js';
 import { extractPythonComponents, type ParsedPythonFile } from './component-extractor.js';
@@ -66,11 +66,11 @@ export class PythonAnalyzer implements LanguageAnalyzer {
     return this.files.length;
   }
 
-  extractComponents(): CmiwComponent[] {
+  extractComponents(): IddComponent[] {
     return extractPythonComponents(this.files);
   }
 
-  buildRelationships(components: CmiwComponent[]): CmiwRelationship[] {
+  buildRelationships(components: IddComponent[]): IddRelationship[] {
     return buildPythonRelationships(this.files, components);
   }
 

@@ -1,11 +1,11 @@
 /**
- * Intent: Format CmiwReport for colored terminal output.
+ * Intent: Format IddReport for colored terminal output.
  * Uses chalk for ANSI color codes.
  * Guarantees: Output is readable in a terminal with severity-based coloring.
  */
 
 import chalk from 'chalk';
-import type { CmiwReport } from '../types/report.js';
+import type { IddReport } from '../types/report.js';
 import type { Severity } from '../types/security.js';
 
 const SEVERITY_COLORS: Record<Severity, (text: string) => string> = {
@@ -25,17 +25,17 @@ const GRADE_COLORS: Record<string, (text: string) => string> = {
 };
 
 /**
- * Format a CMIW report for terminal display.
+ * Format a IDD report for terminal display.
  *
  * Intent: Produce colored, scannable terminal output.
  * Guarantees: Critical/high items are prominently colored.
  */
-export function formatTerminal(report: CmiwReport): string {
+export function formatTerminal(report: IddReport): string {
   const lines: string[] = [];
 
   // Header
   lines.push('');
-  lines.push(chalk.bold.cyan('  CMIW Analysis Report'));
+  lines.push(chalk.bold.cyan('  IDD Analysis Report'));
   lines.push(chalk.gray(`  ${report.metadata.analyzedPath}`));
   lines.push(chalk.gray(`  ${report.metadata.timestamp}`));
   lines.push('');

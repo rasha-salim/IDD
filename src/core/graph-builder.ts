@@ -6,7 +6,7 @@
  */
 
 import { dirname, basename } from 'node:path';
-import type { CmiwComponent, CmiwRelationship } from '../types/components.js';
+import type { IddComponent, IddRelationship } from '../types/components.js';
 import type {
   KnowledgeGraph,
   GraphNode,
@@ -24,8 +24,8 @@ import { logger } from '../utils/logger.js';
  * Nodes are grouped by directory. Circular dependencies are detected.
  */
 export function buildGraph(
-  components: CmiwComponent[],
-  relationships: CmiwRelationship[],
+  components: IddComponent[],
+  relationships: IddRelationship[],
 ): KnowledgeGraph {
   const nodes = components.map(componentToNode);
   const edges = relationships.map(relationshipToEdge);
@@ -53,7 +53,7 @@ export function buildGraph(
   return { nodes, edges, clusters, circularDependencies };
 }
 
-function componentToNode(component: CmiwComponent): GraphNode {
+function componentToNode(component: IddComponent): GraphNode {
   const dir = dirname(component.filePath);
   const group = basename(dir);
 
@@ -73,7 +73,7 @@ function componentToNode(component: CmiwComponent): GraphNode {
   };
 }
 
-function relationshipToEdge(relationship: CmiwRelationship): GraphEdge {
+function relationshipToEdge(relationship: IddRelationship): GraphEdge {
   const weight = getEdgeWeight(relationship.type);
 
   return {
@@ -102,7 +102,7 @@ function getEdgeWeight(type: string): number {
   }
 }
 
-function buildClusters(components: CmiwComponent[]): GraphCluster[] {
+function buildClusters(components: IddComponent[]): GraphCluster[] {
   const dirGroups = new Map<string, string[]>();
 
   for (const comp of components) {
@@ -127,8 +127,8 @@ function buildClusters(components: CmiwComponent[]): GraphCluster[] {
  * Guarantees: Each cycle is reported once, with the full path.
  */
 function detectCircularDependencies(
-  components: CmiwComponent[],
-  relationships: CmiwRelationship[],
+  components: IddComponent[],
+  relationships: IddRelationship[],
 ): CircularDependency[] {
   // Build adjacency list from import relationships
   const importEdges = relationships.filter((r) => r.type === 'imports');

@@ -1,9 +1,9 @@
 /**
  * Intent: Define the top-level report structure.
- * This is the complete output of a CMIW analysis run.
+ * This is the complete output of an IDD analysis run.
  */
 
-import type { CmiwComponent, CmiwRelationship } from './components.js';
+import type { IddComponent, IddRelationship } from './components.js';
 import type { KnowledgeGraph } from './graph.js';
 import type { SecurityPosture } from './security.js';
 import type { Architecture } from './architecture.js';
@@ -19,10 +19,10 @@ export interface ReportMetadata {
   llmEnriched: boolean;
 }
 
-export interface CmiwReport {
+export interface IddReport {
   metadata: ReportMetadata;
-  components: CmiwComponent[];
-  relationships: CmiwRelationship[];
+  components: IddComponent[];
+  relationships: IddRelationship[];
   graph: KnowledgeGraph;
   architecture: Architecture;
   security: SecurityPosture;

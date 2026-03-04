@@ -19,7 +19,7 @@ import { generateComponentId } from '../../utils/id-generator.js';
 const EXEC_FUNCTIONS = ['exec', 'execSync', 'execFile', 'execFileSync'];
 
 export const commandInjectionRule: SecurityRuleDefinition = {
-  id: 'cmiw-sec-006',
+  id: 'idd-sec-006',
   name: 'Command Injection',
   description: 'User input passed to child_process execution functions',
   severity: 'critical',
@@ -55,7 +55,7 @@ export const commandInjectionRule: SecurityRuleDefinition = {
         const line = node.getStartLineNumber();
         findings.push({
           id: generateComponentId('finding', filePath, `cmd-injection-${line}`),
-          ruleId: 'cmiw-sec-006',
+          ruleId: 'idd-sec-006',
           severity: 'critical',
           title: 'Potential command injection',
           description: `Dynamic input passed to ${exprText}() at line ${line}`,
@@ -107,7 +107,7 @@ export const commandInjectionRule: SecurityRuleDefinition = {
       const line = node.getStartLineNumber();
       findings.push({
         id: generateComponentId('finding', filePath, `cmd-injection-${line}`),
-        ruleId: 'cmiw-sec-006',
+        ruleId: 'idd-sec-006',
         severity: 'critical',
         title: 'Command injection via tainted input',
         description: `User input from ${taintResult.source} flows to ${exprText}() at line ${line}`,

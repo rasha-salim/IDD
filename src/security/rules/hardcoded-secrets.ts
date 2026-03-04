@@ -72,7 +72,7 @@ function checkSecrets(
       const line = node.getStartLineNumber();
       findings.push({
         id: generateComponentId('finding', filePath, `hardcoded-secret-${line}`),
-        ruleId: 'cmiw-sec-004',
+        ruleId: 'idd-sec-004',
         severity: 'critical',
         title: 'Hardcoded secret detected',
         description: `Variable "${varName}" appears to contain a hardcoded secret at line ${line}`,
@@ -91,7 +91,7 @@ function checkSecrets(
 }
 
 export const hardcodedSecretsRule: SecurityRuleDefinition = {
-  id: 'cmiw-sec-004',
+  id: 'idd-sec-004',
   name: 'Hardcoded Secrets',
   description: 'API keys, passwords, or tokens hardcoded in source code',
   severity: 'critical',

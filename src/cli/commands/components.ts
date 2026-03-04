@@ -2,7 +2,7 @@
  * Intent: Extract components from a project and output as JSON.
  * This is a granular subcommand for agents that only need the component list.
  *
- * Guarantees: Outputs CmiwComponent[] as JSON to stdout.
+ * Guarantees: Outputs IddComponent[] as JSON to stdout.
  * Exit 0 on success, exit 1 on error.
  */
 
@@ -13,7 +13,7 @@ import { detectLanguage } from '../../core/language-detector.js';
 import { createAnalyzer } from '../../core/language-analyzer.js';
 import { shouldBeQuiet, createSpinner } from '../quiet-spinner.js';
 import { setLogLevel } from '../../utils/logger.js';
-import { CmiwError } from '../../utils/errors.js';
+import { IddError } from '../../utils/errors.js';
 
 /**
  * Execute the components subcommand.
@@ -30,7 +30,7 @@ export async function runComponents(options: SubcommandOptions): Promise<void> {
   const targetPath = resolve(options.targetPath);
 
   if (!existsSync(targetPath)) {
-    throw new CmiwError(`Target path does not exist: ${targetPath}`, 'INVALID_PATH');
+    throw new IddError(`Target path does not exist: ${targetPath}`, 'INVALID_PATH');
   }
 
   const langSpinner = createSpinner('Detecting language...', quiet);

@@ -13,8 +13,8 @@
 import type Parser from 'web-tree-sitter';
 import {
   RelationshipType,
-  type CmiwComponent,
-  type CmiwRelationship,
+  type IddComponent,
+  type IddRelationship,
 } from '../../types/components.js';
 import { generateComponentId, generateRelationshipId } from '../../utils/id-generator.js';
 import { logger } from '../../utils/logger.js';
@@ -36,15 +36,15 @@ interface ImportInfo {
  */
 export function buildPythonRelationships(
   files: ParsedPythonFile[],
-  components: CmiwComponent[],
-): CmiwRelationship[] {
-  const componentIndex = new Map<string, CmiwComponent>();
+  components: IddComponent[],
+): IddRelationship[] {
+  const componentIndex = new Map<string, IddComponent>();
   for (const comp of components) {
     componentIndex.set(comp.id, comp);
   }
 
   // Build file path -> file component map
-  const fileByPath = new Map<string, CmiwComponent>();
+  const fileByPath = new Map<string, IddComponent>();
   for (const comp of components) {
     if (comp.type === 'file') {
       fileByPath.set(comp.filePath, comp);
@@ -55,14 +55,14 @@ export function buildPythonRelationships(
   const moduleMap = buildModuleMap(files);
 
   // Build name -> component map for call resolution
-  const nameToComponent = new Map<string, CmiwComponent>();
+  const nameToComponent = new Map<string, IddComponent>();
   for (const comp of components) {
     if (comp.type !== 'file') {
       nameToComponent.set(comp.name, comp);
     }
   }
 
-  const relationships = new Map<string, CmiwRelationship>();
+  const relationships = new Map<string, IddRelationship>();
 
   for (const file of files) {
     const fileComp = fileByPath.get(file.filePath);
@@ -110,10 +110,10 @@ function buildModuleMap(files: ParsedPythonFile[]): Map<string, string> {
 
 function addImportRelationships(
   file: ParsedPythonFile,
-  fileComp: CmiwComponent,
-  fileByPath: Map<string, CmiwComponent>,
+  fileComp: IddComponent,
+  fileByPath: Map<string, IddComponent>,
   moduleMap: Map<string, string>,
-  relationships: Map<string, CmiwRelationship>,
+  relationships: Map<string, IddRelationship>,
 ): void {
   const imports = extractImports(file.tree.rootNode);
 
@@ -226,9 +226,9 @@ function findByPath(moduleMap: Map<string, string>, targetPath: string): string 
 
 function addInheritanceRelationships(
   file: ParsedPythonFile,
-  componentIndex: Map<string, CmiwComponent>,
-  nameToComponent: Map<string, CmiwComponent>,
-  relationships: Map<string, CmiwRelationship>,
+  componentIndex: Map<string, IddComponent>,
+  nameToComponent: Map<string, IddComponent>,
+  relationships: Map<string, IddRelationship>,
 ): void {
   const rootNode = file.tree.rootNode;
 
@@ -276,16 +276,16 @@ function addInheritanceRelationships(
 
 function addCallRelationships(
   file: ParsedPythonFile,
-  componentIndex: Map<string, CmiwComponent>,
-  nameToComponent: Map<string, CmiwComponent>,
-  relationships: Map<string, CmiwRelationship>,
+  componentIndex: Map<string, IddComponent>,
+  nameToComponent: Map<string, IddComponent>,
+  relationships: Map<string, IddRelationship>,
 ): void {
   const rootNode = file.tree.rootNode;
 
   // Find top-level functions and class methods, then look for calls inside them
   for (const node of rootNode.children) {
     let funcNode: Parser.SyntaxNode | null = null;
-    let callerComp: CmiwComponent | undefined;
+    let callerComp: IddComponent | undefined;
 
     if (node.type === 'function_definition' || (node.type === 'decorated_definition' && node.childForFieldName('definition')?.type === 'function_definition')) {
       funcNode = node.type === 'function_definition' ? node : node.childForFieldName('definition');
@@ -333,9 +333,9 @@ function addCallRelationships(
 
 function findCallsInNode(
   node: Parser.SyntaxNode,
-  callerComp: CmiwComponent,
-  nameToComponent: Map<string, CmiwComponent>,
-  relationships: Map<string, CmiwRelationship>,
+  callerComp: IddComponent,
+  nameToComponent: Map<string, IddComponent>,
+  relationships: Map<string, IddRelationship>,
 ): void {
   walkDescendants(node, (child) => {
     if (child.type === 'call') {

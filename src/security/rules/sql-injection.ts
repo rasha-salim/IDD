@@ -22,7 +22,7 @@ const DB_SINK_METHODS = ['query', 'execute', 'raw', 'rawQuery', 'exec', 'prepare
 const SQL_VAR_PATTERNS = /\b(sql|query|stmt|statement|command)\b/i;
 
 export const sqlInjectionRule: SecurityRuleDefinition = {
-  id: 'cmiw-sec-002',
+  id: 'idd-sec-002',
   name: 'SQL Injection',
   description: 'String concatenation or template literals used to build SQL queries with dynamic values',
   severity: 'critical',
@@ -46,7 +46,7 @@ export const sqlInjectionRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `sql-injection-${line}`),
-            ruleId: 'cmiw-sec-002',
+            ruleId: 'idd-sec-002',
             severity: 'critical',
             title: 'Potential SQL injection via template literal',
             description: `SQL query built with template literal containing dynamic expressions at line ${line}`,
@@ -72,7 +72,7 @@ export const sqlInjectionRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `sql-concat-${line}`),
-            ruleId: 'cmiw-sec-002',
+            ruleId: 'idd-sec-002',
             severity: 'critical',
             title: 'Potential SQL injection via string concatenation',
             description: `SQL query built with string concatenation at line ${line}`,
@@ -126,7 +126,7 @@ export const sqlInjectionRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `sql-injection-${line}`),
-            ruleId: 'cmiw-sec-002',
+            ruleId: 'idd-sec-002',
             severity: 'critical',
             title: 'SQL injection via tainted template literal',
             description: `SQL query at line ${line} interpolates user input`,
@@ -155,7 +155,7 @@ export const sqlInjectionRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `sql-concat-${line}`),
-            ruleId: 'cmiw-sec-002',
+            ruleId: 'idd-sec-002',
             severity: 'critical',
             title: 'SQL injection via tainted string concatenation',
             description: `SQL query at line ${line} concatenates user input`,

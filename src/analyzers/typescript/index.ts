@@ -8,7 +8,7 @@
 
 import type { Project } from 'ts-morph';
 import type { LanguageAnalyzer } from '../../core/language-analyzer.js';
-import type { CmiwComponent, CmiwRelationship } from '../../types/components.js';
+import type { IddComponent, IddRelationship } from '../../types/components.js';
 import type { SecurityPosture } from '../../types/security.js';
 import type { SecurityConfig } from '../../types/config.js';
 import { loadProject } from '../../core/project-loader.js';
@@ -32,12 +32,12 @@ export class TypeScriptAnalyzer implements LanguageAnalyzer {
     return this.project!.getSourceFiles().length;
   }
 
-  extractComponents(): CmiwComponent[] {
+  extractComponents(): IddComponent[] {
     this.ensureLoaded();
     return extractComponents(this.project!);
   }
 
-  buildRelationships(components: CmiwComponent[]): CmiwRelationship[] {
+  buildRelationships(components: IddComponent[]): IddRelationship[] {
     this.ensureLoaded();
     return buildRelationships(this.project!, components);
   }

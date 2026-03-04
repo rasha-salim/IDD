@@ -35,7 +35,7 @@ describe('Python Security Rules', () => {
     await initParser();
   });
 
-  describe('cmiw-py-001: SQL Injection', () => {
+  describe('idd-py-001: SQL Injection', () => {
     it('detects f-string SQL in cursor.execute()', () => {
       const source = `
 from flask import request
@@ -44,7 +44,7 @@ def search():
     cursor.execute(f"SELECT * FROM users WHERE name = '{name}'")
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const sqlFindings = findings.filter((f) => f.ruleId === 'cmiw-py-001');
+      const sqlFindings = findings.filter((f) => f.ruleId === 'idd-py-001');
       expect(sqlFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -56,12 +56,12 @@ def search():
     cursor.execute("SELECT * FROM users WHERE name = ?", (name,))
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const sqlFindings = findings.filter((f) => f.ruleId === 'cmiw-py-001');
+      const sqlFindings = findings.filter((f) => f.ruleId === 'idd-py-001');
       expect(sqlFindings).toHaveLength(0);
     });
   });
 
-  describe('cmiw-py-002: Command Injection', () => {
+  describe('idd-py-002: Command Injection', () => {
     it('detects os.system with user input', () => {
       const source = `
 from flask import request
@@ -70,7 +70,7 @@ def run():
     os.system(f"echo {cmd}")
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const cmdFindings = findings.filter((f) => f.ruleId === 'cmiw-py-002');
+      const cmdFindings = findings.filter((f) => f.ruleId === 'idd-py-002');
       expect(cmdFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -82,7 +82,7 @@ def compute():
     eval(expr)
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const cmdFindings = findings.filter((f) => f.ruleId === 'cmiw-py-002');
+      const cmdFindings = findings.filter((f) => f.ruleId === 'idd-py-002');
       expect(cmdFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -92,12 +92,12 @@ def run():
     os.system("echo hello")
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const cmdFindings = findings.filter((f) => f.ruleId === 'cmiw-py-002');
+      const cmdFindings = findings.filter((f) => f.ruleId === 'idd-py-002');
       expect(cmdFindings).toHaveLength(0);
     });
   });
 
-  describe('cmiw-py-003: Path Traversal', () => {
+  describe('idd-py-003: Path Traversal', () => {
     it('detects open() with user input', () => {
       const source = `
 from flask import request
@@ -106,7 +106,7 @@ def read():
     open(filename)
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const pathFindings = findings.filter((f) => f.ruleId === 'cmiw-py-003');
+      const pathFindings = findings.filter((f) => f.ruleId === 'idd-py-003');
       expect(pathFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -116,19 +116,19 @@ def read():
     open("config.txt")
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const pathFindings = findings.filter((f) => f.ruleId === 'cmiw-py-003');
+      const pathFindings = findings.filter((f) => f.ruleId === 'idd-py-003');
       expect(pathFindings).toHaveLength(0);
     });
   });
 
-  describe('cmiw-py-004: Hardcoded Secrets', () => {
+  describe('idd-py-004: Hardcoded Secrets', () => {
     it('detects hardcoded password', () => {
       const source = `
 db_password = "production_password_123"
 SECRET_KEY = "super-secret-key-12345"
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const secretFindings = findings.filter((f) => f.ruleId === 'cmiw-py-004');
+      const secretFindings = findings.filter((f) => f.ruleId === 'idd-py-004');
       expect(secretFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -137,12 +137,12 @@ SECRET_KEY = "super-secret-key-12345"
 password = os.environ.get("DB_PASSWORD")
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const secretFindings = findings.filter((f) => f.ruleId === 'cmiw-py-004');
+      const secretFindings = findings.filter((f) => f.ruleId === 'idd-py-004');
       expect(secretFindings).toHaveLength(0);
     });
   });
 
-  describe('cmiw-py-005: Unsafe Deserialization', () => {
+  describe('idd-py-005: Unsafe Deserialization', () => {
     it('detects pickle.loads', () => {
       const source = `
 import pickle
@@ -150,7 +150,7 @@ def load():
     data = pickle.loads(raw_data)
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const deserFindings = findings.filter((f) => f.ruleId === 'cmiw-py-005');
+      const deserFindings = findings.filter((f) => f.ruleId === 'idd-py-005');
       expect(deserFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -161,7 +161,7 @@ def load():
     config = yaml.load(raw_data)
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const deserFindings = findings.filter((f) => f.ruleId === 'cmiw-py-005');
+      const deserFindings = findings.filter((f) => f.ruleId === 'idd-py-005');
       expect(deserFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -172,12 +172,12 @@ def load():
     config = yaml.load(raw_data, Loader=yaml.SafeLoader)
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const deserFindings = findings.filter((f) => f.ruleId === 'cmiw-py-005');
+      const deserFindings = findings.filter((f) => f.ruleId === 'idd-py-005');
       expect(deserFindings).toHaveLength(0);
     });
   });
 
-  describe('cmiw-py-006: Missing Auth', () => {
+  describe('idd-py-006: Missing Auth', () => {
     it('detects route without login_required', () => {
       const source = `
 from flask import Flask
@@ -188,7 +188,7 @@ def admin_dashboard():
     return "admin"
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const authFindings = findings.filter((f) => f.ruleId === 'cmiw-py-006');
+      const authFindings = findings.filter((f) => f.ruleId === 'idd-py-006');
       expect(authFindings.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -203,7 +203,7 @@ def admin():
     return "admin"
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const authFindings = findings.filter((f) => f.ruleId === 'cmiw-py-006');
+      const authFindings = findings.filter((f) => f.ruleId === 'idd-py-006');
       expect(authFindings).toHaveLength(0);
     });
 
@@ -217,7 +217,7 @@ def health():
     return "ok"
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)]);
-      const authFindings = findings.filter((f) => f.ruleId === 'cmiw-py-006');
+      const authFindings = findings.filter((f) => f.ruleId === 'idd-py-006');
       expect(authFindings).toHaveLength(0);
     });
   });
@@ -237,9 +237,9 @@ def health():
       expect(findings.length).toBeGreaterThanOrEqual(5);
 
       const ruleIds = new Set(findings.map((f) => f.ruleId));
-      expect(ruleIds.has('cmiw-py-002')).toBe(true); // command injection
-      expect(ruleIds.has('cmiw-py-004')).toBe(true); // hardcoded secrets
-      expect(ruleIds.has('cmiw-py-005')).toBe(true); // unsafe deserialization
+      expect(ruleIds.has('idd-py-002')).toBe(true); // command injection
+      expect(ruleIds.has('idd-py-004')).toBe(true); // hardcoded secrets
+      expect(ruleIds.has('idd-py-005')).toBe(true); // unsafe deserialization
     });
 
     it('finds no issues in clean python-project fixture', () => {
@@ -265,9 +265,9 @@ db_password = "secret123"
 pickle.loads(data)
 `;
       const { findings } = runPythonSecurityRules([parseSource(source)], {
-        rules: { 'cmiw-py-004': { enabled: false } },
+        rules: { 'idd-py-004': { enabled: false } },
       });
-      const secretFindings = findings.filter((f) => f.ruleId === 'cmiw-py-004');
+      const secretFindings = findings.filter((f) => f.ruleId === 'idd-py-004');
       expect(secretFindings).toHaveLength(0);
     });
 

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { formatJson } from '../../../src/output/json-formatter.js';
-import type { CmiwReport } from '../../../src/types/report.js';
+import type { IddReport } from '../../../src/types/report.js';
 
-function createMockReport(): CmiwReport {
+function createMockReport(): IddReport {
   return {
     metadata: {
       version: '0.1.0',

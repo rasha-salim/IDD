@@ -12,7 +12,7 @@ import { createAnalyzer } from '../../src/core/language-analyzer.js';
 import { buildGraph } from '../../src/core/graph-builder.js';
 import { loadSecurityConfig } from '../../src/core/config-loader.js';
 import { runSchema } from '../../src/cli/commands/schema.js';
-import type { CmiwComponent } from '../../src/types/components.js';
+import type { IddComponent } from '../../src/types/components.js';
 import type { KnowledgeGraph } from '../../src/types/graph.js';
 import type { SecurityPosture } from '../../src/types/security.js';
 
@@ -22,11 +22,11 @@ const PY_FIXTURE = resolve(import.meta.dirname, '../fixtures/python-project');
 const PY_VULNERABLE = resolve(import.meta.dirname, '../fixtures/python-vulnerable');
 
 describe('components subcommand logic', () => {
-  it('should extract TS components as valid CmiwComponent[]', async () => {
+  it('should extract TS components as valid IddComponent[]', async () => {
     const language = detectLanguage(TS_FIXTURE);
     const analyzer = await createAnalyzer(language);
     await analyzer.loadProject(TS_FIXTURE);
-    const components: CmiwComponent[] = analyzer.extractComponents();
+    const components: IddComponent[] = analyzer.extractComponents();
 
     expect(Array.isArray(components)).toBe(true);
     expect(components.length).toBeGreaterThan(0);
@@ -50,13 +50,13 @@ describe('components subcommand logic', () => {
     expect(parsed.length).toBe(components.length);
   });
 
-  it('should extract Python components as valid CmiwComponent[]', async () => {
+  it('should extract Python components as valid IddComponent[]', async () => {
     const language = detectLanguage(PY_FIXTURE);
     expect(language).toBe('python');
 
     const analyzer = await createAnalyzer(language);
     await analyzer.loadProject(PY_FIXTURE);
-    const components: CmiwComponent[] = analyzer.extractComponents();
+    const components: IddComponent[] = analyzer.extractComponents();
 
     expect(Array.isArray(components)).toBe(true);
     expect(components.length).toBeGreaterThan(0);

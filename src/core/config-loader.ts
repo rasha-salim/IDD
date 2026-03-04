@@ -1,5 +1,5 @@
 /**
- * Intent: Find and parse .cmiwrc.json configuration files.
+ * Intent: Find and parse .iddrc.json configuration files.
  * Searches target directory and parents, validates structure, merges with CLI overrides.
  *
  * Guarantees: Always returns a valid SecurityConfig (defaults if no file found).
@@ -12,7 +12,7 @@ import type { SecurityConfig } from '../types/config.js';
 import type { Severity } from '../types/security.js';
 import { logger } from '../utils/logger.js';
 
-const CONFIG_FILENAME = '.cmiwrc.json';
+const CONFIG_FILENAME = '.iddrc.json';
 
 const VALID_SEVERITIES: Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
 
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG: SecurityConfig = {
 };
 
 /**
- * Search for .cmiwrc.json starting from targetDir, walking up to filesystem root.
+ * Search for .iddrc.json starting from targetDir, walking up to filesystem root.
  *
  * Intent: Find the nearest config file applicable to the analysis target.
  * Guarantees: Returns the absolute path if found, undefined otherwise.
@@ -152,7 +152,7 @@ function parseConfig(raw: Record<string, unknown>): SecurityConfig {
 }
 
 /**
- * Load security configuration from .cmiwrc.json and CLI overrides.
+ * Load security configuration from .iddrc.json and CLI overrides.
  *
  * Intent: Produce the merged SecurityConfig used throughout the analysis pipeline.
  * Guarantees: CLI overrides always win over file config. File config wins over defaults.
@@ -207,7 +207,7 @@ export function loadSecurityConfig(options: {
 
     fileConfig = parseConfig(parsed as Record<string, unknown>);
   } else {
-    logger.debug('No .cmiwrc.json found, using defaults');
+    logger.debug('No .iddrc.json found, using defaults');
   }
 
   // Apply CLI overrides

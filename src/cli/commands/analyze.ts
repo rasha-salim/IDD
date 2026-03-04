@@ -1,5 +1,5 @@
 /**
- * Intent: Orchestrate the full CMIW analysis pipeline.
+ * Intent: Orchestrate the full IDD analysis pipeline.
  * This is the main command that ties all analysis phases together.
  * Guarantees: Each phase runs in order. Failures are reported with context.
  */
@@ -20,7 +20,7 @@ import { formatMarkdown } from '../../output/markdown-formatter.js';
 import { formatTerminal } from '../../output/terminal-formatter.js';
 import { cloneRepo } from '../../utils/git.js';
 import { setLogLevel } from '../../utils/logger.js';
-import { CmiwError } from '../../utils/errors.js';
+import { IddError } from '../../utils/errors.js';
 import { loadSecurityConfig } from '../../core/config-loader.js';
 import { shouldBeQuiet, createSpinner } from '../quiet-spinner.js';
 
@@ -53,7 +53,7 @@ export async function runAnalyze(options: AnalyzeOptions): Promise<void> {
 
   targetPath = resolve(targetPath);
   if (!existsSync(targetPath)) {
-    throw new CmiwError(`Target path does not exist: ${targetPath}`, 'INVALID_PATH');
+    throw new IddError(`Target path does not exist: ${targetPath}`, 'INVALID_PATH');
   }
 
   // Phase 0.5: Load security config

@@ -1,11 +1,11 @@
 ---
-name: cmiw-security
-description: Run CMIW security analysis on a project, parse findings, and offer to fix them. Use when the user wants to scan a codebase for security vulnerabilities.
+name: idd-security
+description: Run IDD security analysis on a project, parse findings, and offer to fix them. Use when the user wants to scan a codebase for security vulnerabilities.
 ---
 
-# CMIW Security Scan
+# IDD Security Scan
 
-Run a security scan on the target project using CMIW and act on the results.
+Run a security scan on the target project using IDD and act on the results.
 
 ## Arguments
 
@@ -15,16 +15,16 @@ The user may provide a path as an argument. If no path is provided, use the curr
 
 ### 1. Run the security scan
 
-Run the CMIW security scanner on the target path:
+Run the IDD security scanner on the target path:
 
 ```
-cmiw security <path> --quiet 2>/dev/null
+idd security <path> --quiet 2>/dev/null
 ```
 
 Capture both the JSON output and the exit code.
 
 - **Exit 0**: No security findings. Report that the project is clean and stop.
-- **Exit 1**: Error running CMIW. Report the error from stderr and stop.
+- **Exit 1**: Error running IDD. Report the error from stderr and stop.
 - **Exit 2**: Security findings detected. Continue to step 2.
 
 ### 2. Parse and present findings
@@ -61,7 +61,7 @@ For each finding the user wants fixed:
 After applying fixes, run the security scan again to verify:
 
 ```
-cmiw security <path> --quiet 2>/dev/null
+idd security <path> --quiet 2>/dev/null
 ```
 
 Report the updated score/grade and any remaining findings.
@@ -71,4 +71,4 @@ Report the updated score/grade and any remaining findings.
 - Always read the actual source file before attempting a fix. The snippet in the finding may not have full context.
 - Never suppress or hide findings. If a finding cannot be fixed automatically, explain why and provide manual guidance.
 - Do not disable security rules as a "fix". The goal is to fix the underlying vulnerability.
-- If CMIW is not installed, tell the user to install it: `npm install -g cmiw-cli`
+- If IDD is not installed, tell the user to install it: `npm install -g idd-cli`

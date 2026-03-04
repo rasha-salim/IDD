@@ -38,7 +38,7 @@ function buildAuthIndicators(trustedMiddleware: string[]): string[] {
 }
 
 export const missingAuthRule: SecurityRuleDefinition = {
-  id: 'cmiw-sec-003',
+  id: 'idd-sec-003',
   name: 'Missing Authentication',
   description: 'HTTP endpoint handlers without authentication middleware',
   severity: 'high',
@@ -97,7 +97,7 @@ function checkRoutes(
       const line = node.getStartLineNumber();
       findings.push({
         id: generateComponentId('finding', filePath, `missing-auth-${line}`),
-        ruleId: 'cmiw-sec-003',
+        ruleId: 'idd-sec-003',
         severity: 'high',
         title: 'Route handler without authentication',
         description: `HTTP endpoint at line ${line} does not appear to have authentication middleware`,

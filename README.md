@@ -1,4 +1,4 @@
-# CMIW
+# IDD
 
 A CLI tool and library that analyzes TypeScript/JavaScript and Python codebases to generate knowledge graphs, system design analysis, and security assessments.
 
@@ -26,61 +26,61 @@ npm install
 # Build the project
 npm run build
 
-# Install globally (makes 'cmiw' available everywhere)
+# Install globally (makes 'idd' available everywhere)
 npm link
 ```
 
-To uninstall the global command later: `npm unlink -g cmiw`
+To uninstall the global command later: `npm unlink -g idd`
 
 ## Usage
 
 ### Commands
 
-CMIW provides granular subcommands designed for both human users and coding agents:
+IDD provides granular subcommands designed for both human users and coding agents:
 
 ```
-cmiw analyze <path>       Full analysis pipeline (components + graph + security + architecture)
-cmiw components <path>    Extract components only -> JSON array
-cmiw graph <path>         Build knowledge graph -> JSON object
-cmiw security <path>      Security analysis only -> JSON object
-cmiw schema <type>        Output JSON Schema for a type (no project needed)
+idd analyze <path>       Full analysis pipeline (components + graph + security + architecture)
+idd components <path>    Extract components only -> JSON array
+idd graph <path>         Build knowledge graph -> JSON object
+idd security <path>      Security analysis only -> JSON object
+idd schema <type>        Output JSON Schema for a type (no project needed)
 ```
 
 ### CLI Examples
 
 ```bash
 # Full analysis (terminal output, no LLM)
-cmiw analyze ./my-project --skip-llm
+idd analyze ./my-project --skip-llm
 
 # JSON output to file
-cmiw analyze ./my-project --skip-llm --format json -o report.json
+idd analyze ./my-project --skip-llm --format json -o report.json
 
 # SARIF output for CI/CD integration
-cmiw analyze ./my-project --skip-llm --format sarif -o results.sarif
+idd analyze ./my-project --skip-llm --format sarif -o results.sarif
 
 # Markdown report
-cmiw analyze ./my-project --format markdown -o report.md
+idd analyze ./my-project --format markdown -o report.md
 
 # Analyze a remote git repository
-cmiw analyze https://github.com/user/repo --skip-llm
+idd analyze https://github.com/user/repo --skip-llm
 
 # With LLM enrichment (requires ANTHROPIC_API_KEY)
-cmiw analyze ./my-project
+idd analyze ./my-project
 
 # Extract only components (always JSON)
-cmiw components ./my-project --quiet
+idd components ./my-project --quiet
 
 # Build knowledge graph only
-cmiw graph ./my-project --quiet
+idd graph ./my-project --quiet
 
 # Security scan with exit code (0=clean, 2=findings)
-cmiw security ./my-project --quiet
+idd security ./my-project --quiet
 
 # Discover output shapes before calling subcommands
-cmiw schema components
-cmiw schema graph
-cmiw schema security
-cmiw schema report
+idd schema components
+idd schema graph
+idd schema security
+idd schema report
 ```
 
 ### CLI Options
@@ -107,7 +107,7 @@ cmiw schema report
 
 | Option | Description | Default |
 |---|---|---|
-| `--config <path>` | Path to `.cmiwrc.json` config file | Auto-detected |
+| `--config <path>` | Path to `.iddrc.json` config file | Auto-detected |
 | `--min-severity <level>` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` | all |
 | `--disable-rules <ids>` | Comma-separated rule IDs to disable | none |
 
@@ -125,58 +125,58 @@ Exit code 2 lets CI/CD pipelines and agents gate on security without parsing JSO
 
 > For the full agent integration guide with detailed examples, patterns, and error handling, see [docs/agent-integration.md](docs/agent-integration.md).
 
-CMIW is designed to be a first-class tool for coding agents (Claude Code, Cursor, custom MCP agents). The granular subcommands output structured JSON that agents can parse and act on directly.
+IDD is designed to be a first-class tool for coding agents (Claude Code, Cursor, custom MCP agents). The granular subcommands output structured JSON that agents can parse and act on directly.
 
 ### Key Design Choices for Agents
 
 - **Auto-quiet on pipe**: When stdout is not a TTY (e.g., piped to `jq`), spinners are automatically suppressed. No `--quiet` flag needed.
 - **Always JSON**: The `components`, `graph`, and `security` subcommands always output JSON. No `--format` flag needed.
-- **Schema introspection**: Call `cmiw schema <type>` to discover the output shape before calling the actual subcommand. No documentation lookup needed.
-- **Security exit codes**: `cmiw security` exits with code 2 if findings exist, enabling simple `if` checks without JSON parsing.
+- **Schema introspection**: Call `idd schema <type>` to discover the output shape before calling the actual subcommand. No documentation lookup needed.
+- **Security exit codes**: `idd security` exits with code 2 if findings exist, enabling simple `if` checks without JSON parsing.
 
 ### Example Agent Workflows
 
 **Get component names:**
 ```bash
-cmiw components ./project | jq '.[].name'
+idd components ./project | jq '.[].name'
 ```
 
 **Check if project has security issues:**
 ```bash
-cmiw security ./project --quiet
+idd security ./project --quiet
 # $? == 0 -> clean, $? == 2 -> has findings
 ```
 
 **Get security findings with severity filter:**
 ```bash
-cmiw security ./project --min-severity high | jq '.findings[] | {title, severity, filePath, startLine}'
+idd security ./project --min-severity high | jq '.findings[] | {title, severity, filePath, startLine}'
 ```
 
 **Build graph and extract circular dependencies:**
 ```bash
-cmiw graph ./project | jq '.circularDependencies'
+idd graph ./project | jq '.circularDependencies'
 ```
 
 **Discover output shape before calling:**
 ```bash
-# Learn what fields CmiwComponent has
-cmiw schema components | jq '.items.properties | keys'
+# Learn what fields IddComponent has
+idd schema components | jq '.items.properties | keys'
 
 # Then extract components
-cmiw components ./project | jq '.[0]'
+idd components ./project | jq '.[0]'
 ```
 
 **Full analysis as JSON (auto-quiets in pipe):**
 ```bash
-cmiw analyze ./project --skip-llm --format json | jq '.security.grade'
+idd analyze ./project --skip-llm --format json | jq '.security.grade'
 ```
 
 ### Claude Code Skills
 
-CMIW includes ready-to-use Claude Code skills for interactive agent workflows:
+IDD includes ready-to-use Claude Code skills for interactive agent workflows:
 
-- **`/cmiw-security`** -- Scan a project, present findings, offer to fix them, re-scan to verify
-- **`/cmiw-diagram`** -- Generate a Mermaid system design diagram from codebase analysis
+- **`/idd-security`** -- Scan a project, present findings, offer to fix them, re-scan to verify
+- **`/idd-diagram`** -- Generate a Mermaid system design diagram from codebase analysis
 
 Install them by copying from `docs/skills/` to `~/.claude/skills/`. See [docs/agent-integration.md](docs/agent-integration.md#claude-code-skills) for full details and instructions for writing your own skills.
 
@@ -196,7 +196,7 @@ import {
   formatSarif,
   formatMarkdown,
   formatTerminal,
-} from 'cmiw-cli';
+} from 'idd-cli';
 
 const project = loadProject({ targetPath: './my-project' });
 const components = extractComponents(project);
@@ -229,30 +229,30 @@ The `analyze` command runs 8 phases in sequence:
 5. **Graph Construction** -- Transforms components into graph nodes, relationships into edges, groups by directory, detects circular dependencies
 6. **Security Analysis** -- Executes all 7 rules against every source file, calculates a posture score (0-100) and grade (A-F)
 7. **LLM Enrichment** (optional) -- Sends structured summaries (not raw code) to Claude for architecture pattern analysis and security assessment
-8. **Report Assembly** -- Combines all results into a typed `CmiwReport` and formats the output
+8. **Report Assembly** -- Combines all results into a typed `IddReport` and formats the output
 
 ## Security Rules
 
 | Rule ID | Name | Severity | CWE | OWASP | What It Detects |
 |---|---|---|---|---|---|
-| cmiw-sec-001 | Unsanitized Input | High | CWE-79 | A03:2021 | `req.body`/`req.query` flowing directly into `innerHTML`, `.query()`, etc. |
-| cmiw-sec-002 | SQL Injection | Critical | CWE-89 | A03:2021 | Template literals or string concatenation building SQL queries |
-| cmiw-sec-003 | Missing Authentication | High | CWE-306 | A07:2021 | Express/Fastify route handlers without auth middleware |
-| cmiw-sec-004 | Hardcoded Secrets | Critical | CWE-798 | A07:2021 | API keys, passwords, tokens assigned as string literals |
-| cmiw-sec-005 | Unsafe Eval | Critical/High | CWE-95 | A03:2021 | `eval()`, `Function()`, `innerHTML` assignment, `document.write()` |
-| cmiw-sec-006 | Command Injection | Critical | CWE-78 | A03:2021 | Dynamic input passed to `exec()`, `execSync()`, `spawn()` |
-| cmiw-sec-007 | Path Traversal | High | CWE-22 | A01:2021 | User input used in `readFile()`, `writeFile()`, and other fs operations |
+| idd-sec-001 | Unsanitized Input | High | CWE-79 | A03:2021 | `req.body`/`req.query` flowing directly into `innerHTML`, `.query()`, etc. |
+| idd-sec-002 | SQL Injection | Critical | CWE-89 | A03:2021 | Template literals or string concatenation building SQL queries |
+| idd-sec-003 | Missing Authentication | High | CWE-306 | A07:2021 | Express/Fastify route handlers without auth middleware |
+| idd-sec-004 | Hardcoded Secrets | Critical | CWE-798 | A07:2021 | API keys, passwords, tokens assigned as string literals |
+| idd-sec-005 | Unsafe Eval | Critical/High | CWE-95 | A03:2021 | `eval()`, `Function()`, `innerHTML` assignment, `document.write()` |
+| idd-sec-006 | Command Injection | Critical | CWE-78 | A03:2021 | Dynamic input passed to `exec()`, `execSync()`, `spawn()` |
+| idd-sec-007 | Path Traversal | High | CWE-22 | A01:2021 | User input used in `readFile()`, `writeFile()`, and other fs operations |
 
 ### Python Security Rules
 
 | Rule ID | Name | Severity | CWE | OWASP | What It Detects |
 |---|---|---|---|---|---|
-| cmiw-py-001 | SQL Injection | High | CWE-89 | A03:2021 | f-strings or `.format()` in `cursor.execute()`, `db.execute()` |
-| cmiw-py-002 | Command Injection | Critical | CWE-78 | A03:2021 | User input in `os.system()`, `subprocess`, `eval()`, `exec()` |
-| cmiw-py-003 | Path Traversal | High | CWE-22 | A01:2021 | User input in `open()`, `os.path.join()` without validation |
-| cmiw-py-004 | Hardcoded Secrets | Medium | CWE-798 | A07:2021 | Passwords, API keys, tokens as string literals |
-| cmiw-py-005 | Unsafe Deserialization | Critical | CWE-502 | A08:2021 | `pickle.loads()`, `yaml.load()` without SafeLoader |
-| cmiw-py-006 | Missing Auth | Medium | CWE-862 | A01:2021 | Flask/Django routes without `@login_required` |
+| idd-py-001 | SQL Injection | High | CWE-89 | A03:2021 | f-strings or `.format()` in `cursor.execute()`, `db.execute()` |
+| idd-py-002 | Command Injection | Critical | CWE-78 | A03:2021 | User input in `os.system()`, `subprocess`, `eval()`, `exec()` |
+| idd-py-003 | Path Traversal | High | CWE-22 | A01:2021 | User input in `open()`, `os.path.join()` without validation |
+| idd-py-004 | Hardcoded Secrets | Medium | CWE-798 | A07:2021 | Passwords, API keys, tokens as string literals |
+| idd-py-005 | Unsafe Deserialization | Critical | CWE-502 | A08:2021 | `pickle.loads()`, `yaml.load()` without SafeLoader |
+| idd-py-006 | Missing Auth | Medium | CWE-862 | A01:2021 | Flask/Django routes without `@login_required` |
 
 **Supported Python frameworks:** Flask, Django, FastAPI
 
@@ -273,7 +273,7 @@ Security rules use intra-procedural data-flow (taint) analysis to trace whether 
 
 **How it works:**
 
-1. For each function body, CMIW walks variable declarations and assignments
+1. For each function body, IDD walks variable declarations and assignments
 2. Variables assigned from user input (e.g., `const name = req.body.name`) are marked as tainted
 3. Taint propagates through reassignment (`const x = name`), destructuring (`const { id } = req.params`), and property access (`body.email`)
 4. When a security rule finds a dangerous pattern (SQL template, exec call, fs read), it checks whether the arguments are tainted
@@ -288,7 +288,7 @@ Security rules use intra-procedural data-flow (taint) analysis to trace whether 
 
 ### Rule Configuration
 
-Create a `.cmiwrc.json` file in your project root to configure security rules. CMIW searches the target directory and its parents for this file.
+Create a `.iddrc.json` file in your project root to configure security rules. IDD searches the target directory and its parents for this file.
 
 **Full config example:**
 
@@ -305,8 +305,8 @@ Create a `.cmiwrc.json` file in your project root to configure security rules. C
     "trustedMiddleware": ["rateLimiter", "helmet"],
     "falsePositivePatterns": ["DEMO_KEY", "test_token"],
     "rules": {
-      "cmiw-sec-003": { "enabled": false },
-      "cmiw-sec-004": { "severity": "medium" }
+      "idd-sec-003": { "enabled": false },
+      "idd-sec-004": { "severity": "medium" }
     }
   }
 }
@@ -326,7 +326,7 @@ Create a `.cmiwrc.json` file in your project root to configure security rules. C
 | `rules.<id>.enabled` | `boolean` | Disable a specific rule by ID |
 | `rules.<id>.severity` | `string` | Override the severity of all findings from a rule |
 
-**CLI overrides always win** over file config. For example, `--min-severity critical --disable-rules cmiw-sec-003` overrides any `.cmiwrc.json` settings.
+**CLI overrides always win** over file config. For example, `--min-severity critical --disable-rules idd-sec-003` overrides any `.iddrc.json` settings.
 
 **Framework examples:**
 
@@ -361,7 +361,7 @@ Next.js API routes:
   "security": {
     "customSources": ["req.body", "req.query"],
     "rules": {
-      "cmiw-sec-003": { "enabled": false }
+      "idd-sec-003": { "enabled": false }
     }
   }
 }
@@ -373,7 +373,7 @@ AWS Lambda:
   "security": {
     "customSources": ["event.body", "event.queryStringParameters", "event.pathParameters"],
     "rules": {
-      "cmiw-sec-003": { "enabled": false }
+      "idd-sec-003": { "enabled": false }
     }
   }
 }
@@ -387,7 +387,7 @@ Colored output with severity-based highlighting. Critical/high findings in red, 
 
 ### JSON
 
-Complete `CmiwReport` object with all metadata, components, relationships, graph, architecture, and security data. Pretty-printed with 2-space indentation.
+Complete `IddReport` object with all metadata, components, relationships, graph, architecture, and security data. Pretty-printed with 2-space indentation.
 
 ### SARIF 2.1.0
 
@@ -399,7 +399,7 @@ Human-readable document with tables and lists. Suitable for documentation, pull 
 
 ## LLM Enrichment
 
-When `--skip-llm` is not set and `ANTHROPIC_API_KEY` is configured, CMIW sends structured analysis summaries to Claude for two enrichments:
+When `--skip-llm` is not set and `ANTHROPIC_API_KEY` is configured, IDD sends structured analysis summaries to Claude for two enrichments:
 
 1. **Architecture Analysis** -- Identifies layers (presentation, API, business logic, data access, infrastructure), detects patterns (MVC, layered, microservices, etc.), and documents design decisions with rationale
 2. **Security Assessment** -- Provides contextual interpretation of findings, prioritized recommendations, and identification of systemic issues
@@ -459,20 +459,20 @@ src/
     graph-builder.ts            # Knowledge graph construction
     security-analyzer.ts        # Security rule orchestration, scoring
     report-assembler.ts         # Final report assembly
-    config-loader.ts            # .cmiwrc.json finder, parser, merger
+    config-loader.ts            # .iddrc.json finder, parser, merger
     language-analyzer.ts        # LanguageAnalyzer interface + factory
     language-detector.ts        # Auto-detect language from file extensions
   security/
     data-flow.ts                # Intra-procedural taint tracking
     rules/
       index.ts                  # Rule interface, registry, runner
-      unsanitized-input.ts      # cmiw-sec-001
-      sql-injection.ts          # cmiw-sec-002
-      missing-auth.ts           # cmiw-sec-003
-      hardcoded-secrets.ts      # cmiw-sec-004
-      unsafe-eval.ts            # cmiw-sec-005
-      command-injection.ts      # cmiw-sec-006
-      path-traversal.ts         # cmiw-sec-007
+      unsanitized-input.ts      # idd-sec-001
+      sql-injection.ts          # idd-sec-002
+      missing-auth.ts           # idd-sec-003
+      hardcoded-secrets.ts      # idd-sec-004
+      unsafe-eval.ts            # idd-sec-005
+      command-injection.ts      # idd-sec-006
+      path-traversal.ts         # idd-sec-007
   llm/
     client.ts                   # Anthropic SDK wrapper
     prompts.ts                  # Prompt templates for Claude
@@ -487,17 +487,17 @@ src/
     graph.ts                    # Graph node/edge/cluster types
     security.ts                 # Finding/rule/posture types
     architecture.ts             # Layer/pattern/decision types
-    report.ts                   # CmiwReport top-level schema
+    report.ts                   # IddReport top-level schema
     config.ts                   # CLI configuration types
     index.ts                    # Re-exports
   utils/
     logger.ts                   # Structured logging (debug/info/warn/error)
     id-generator.ts             # Deterministic component/relationship IDs
-    errors.ts                   # CmiwError, ProjectLoadError, AnalysisError, LlmError
+    errors.ts                   # IddError, ProjectLoadError, AnalysisError, LlmError
     git.ts                      # Git clone wrapper (simple-git)
   index.ts                      # Library API exports
 bin/
-  cmiw.js                       # CLI entry point (shebang wrapper)
+  idd.js                       # CLI entry point (shebang wrapper)
 tests/
   fixtures/
     simple-project/             # Known TS project for positive tests
@@ -569,10 +569,10 @@ cp .env.example .env
 
 ```bash
 # Install globally
-npm install -g cmiw-cli
+npm install -g idd-cli
 
 # Or use with npx (no install)
-npx cmiw-cli analyze ./my-project --skip-llm
-npx cmiw-cli components ./my-project
-npx cmiw-cli security ./my-project
+npx idd-cli analyze ./my-project --skip-llm
+npx idd-cli components ./my-project
+npx idd-cli security ./my-project
 ```

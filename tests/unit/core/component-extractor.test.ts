@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { resolve } from 'node:path';
 import { loadProject } from '../../../src/core/project-loader.js';
 import { extractComponents } from '../../../src/core/component-extractor.js';
-import { ComponentType, type CmiwComponent } from '../../../src/types/components.js';
+import { ComponentType, type IddComponent } from '../../../src/types/components.js';
 
 const FIXTURE_PATH = resolve(import.meta.dirname, '../../fixtures/simple-project');
 
 describe('extractComponents', () => {
-  let components: CmiwComponent[];
+  let components: IddComponent[];
 
   beforeAll(() => {
     const project = loadProject({ targetPath: FIXTURE_PATH });

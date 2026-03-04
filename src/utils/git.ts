@@ -16,7 +16,7 @@ import { logger } from './logger.js';
  * Guarantees: Returns the path to the cloned repo. Throws on clone failure.
  */
 export async function cloneRepo(repoUrl: string): Promise<string> {
-  const tempDir = await mkdtemp(join(tmpdir(), 'cmiw-'));
+  const tempDir = await mkdtemp(join(tmpdir(), 'idd-'));
   logger.info(`Cloning ${repoUrl} to ${tempDir}`);
 
   const git = simpleGit();

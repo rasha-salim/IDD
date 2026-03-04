@@ -1,5 +1,5 @@
 /**
- * Intent: Output JSON schema descriptions for CMIW output types.
+ * Intent: Output JSON schema descriptions for IDD output types.
  * Agents call this to learn the output shape before calling actual subcommands.
  *
  * Guarantees: Outputs a valid JSON Schema (draft-07) for the requested type.
@@ -7,12 +7,12 @@
  */
 
 /**
- * JSON Schema for CmiwComponent[].
+ * JSON Schema for IddComponent[].
  */
 const componentsSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
-  title: 'CmiwComponent[]',
-  description: 'Array of components extracted from source code by cmiw components',
+  title: 'IddComponent[]',
+  description: 'Array of components extracted from source code by idd components',
   type: 'array',
   items: {
     type: 'object',
@@ -88,7 +88,7 @@ const componentsSchema = {
 const graphSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
   title: 'KnowledgeGraph',
-  description: 'Knowledge graph produced by cmiw graph',
+  description: 'Knowledge graph produced by idd graph',
   type: 'object',
   required: ['nodes', 'edges', 'clusters', 'circularDependencies'],
   properties: {
@@ -157,7 +157,7 @@ const graphSchema = {
 const securitySchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
   title: 'SecurityPosture',
-  description: 'Security analysis results produced by cmiw security',
+  description: 'Security analysis results produced by idd security',
   type: 'object',
   required: ['score', 'grade', 'findings', 'rules', 'summary'],
   properties: {
@@ -170,7 +170,7 @@ const securitySchema = {
         required: ['id', 'ruleId', 'severity', 'title', 'description', 'filePath', 'startLine', 'endLine', 'snippet', 'recommendation'],
         properties: {
           id: { type: 'string' },
-          ruleId: { type: 'string', description: 'Rule that triggered this finding (e.g. cmiw-sec-001)' },
+          ruleId: { type: 'string', description: 'Rule that triggered this finding (e.g. idd-sec-001)' },
           severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'info'] },
           title: { type: 'string' },
           description: { type: 'string' },
@@ -205,12 +205,12 @@ const securitySchema = {
 };
 
 /**
- * JSON Schema for CmiwReport (full analyze output).
+ * JSON Schema for IddReport (full analyze output).
  */
 const reportSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
-  title: 'CmiwReport',
-  description: 'Full analysis report produced by cmiw analyze --format json',
+  title: 'IddReport',
+  description: 'Full analysis report produced by idd analyze --format json',
   type: 'object',
   required: ['metadata', 'components', 'relationships', 'graph', 'architecture', 'security'],
   properties: {

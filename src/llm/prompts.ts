@@ -6,7 +6,7 @@
 
 import type { KnowledgeGraph } from '../types/graph.js';
 import type { SecurityPosture } from '../types/security.js';
-import type { CmiwComponent, CmiwRelationship } from '../types/components.js';
+import type { IddComponent, IddRelationship } from '../types/components.js';
 
 export const ARCHITECTURE_SYSTEM_PROMPT = `You are a senior software architect analyzing a codebase structure. You will receive a summary of components and their relationships extracted via static analysis. Provide architectural analysis including:
 
@@ -32,8 +32,8 @@ export const SECURITY_SYSTEM_PROMPT = `You are a senior application security eng
 Respond as a concise security assessment paragraph (2-4 paragraphs).`;
 
 export function buildArchitecturePrompt(
-  components: CmiwComponent[],
-  relationships: CmiwRelationship[],
+  components: IddComponent[],
+  relationships: IddRelationship[],
   graph: KnowledgeGraph,
 ): string {
   const componentSummary = components.map((c) => ({

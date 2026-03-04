@@ -9,7 +9,7 @@ import {
   SarifResultBuilder,
   SarifRuleBuilder,
 } from 'node-sarif-builder';
-import type { CmiwReport } from '../types/report.js';
+import type { IddReport } from '../types/report.js';
 import type { Severity } from '../types/security.js';
 
 const SEVERITY_TO_SARIF_LEVEL: Record<Severity, 'error' | 'warning' | 'note' | 'none'> = {
@@ -21,15 +21,15 @@ const SEVERITY_TO_SARIF_LEVEL: Record<Severity, 'error' | 'warning' | 'note' | '
 };
 
 /**
- * Format security findings from a CMIW report as SARIF 2.1.0 JSON.
+ * Format security findings from an IDD report as SARIF 2.1.0 JSON.
  *
  * Intent: Produce SARIF output for integration with GitHub Code Scanning, VS Code SARIF Viewer, etc.
  * Guarantees: Valid SARIF 2.1.0 schema. Every finding maps to a result.
  */
-export function formatSarif(report: CmiwReport): string {
+export function formatSarif(report: IddReport): string {
   const sarifBuilder = new SarifBuilder();
   const runBuilder = new SarifRunBuilder().initSimple({
-    toolDriverName: 'cmiw',
+    toolDriverName: 'idd',
     toolDriverVersion: report.metadata.version,
   });
 

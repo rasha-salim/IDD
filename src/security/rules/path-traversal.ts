@@ -30,7 +30,7 @@ const FS_FUNCTIONS = [
 const USER_INPUT_INDICATORS = ['req.', 'request.', 'params', 'query', 'body', 'input'];
 
 export const pathTraversalRule: SecurityRuleDefinition = {
-  id: 'cmiw-sec-007',
+  id: 'idd-sec-007',
   name: 'Path Traversal',
   description: 'User input used in file system paths without validation',
   severity: 'high',
@@ -60,7 +60,7 @@ export const pathTraversalRule: SecurityRuleDefinition = {
         const line = node.getStartLineNumber();
         findings.push({
           id: generateComponentId('finding', filePath, `path-traversal-${line}`),
-          ruleId: 'cmiw-sec-007',
+          ruleId: 'idd-sec-007',
           severity: 'high',
           title: 'Potential path traversal',
           description: `User input used in file system operation at line ${line}`,
@@ -117,7 +117,7 @@ export const pathTraversalRule: SecurityRuleDefinition = {
       const line = node.getStartLineNumber();
       findings.push({
         id: generateComponentId('finding', filePath, `path-traversal-${line}`),
-        ruleId: 'cmiw-sec-007',
+        ruleId: 'idd-sec-007',
         severity: 'high',
         title: 'Path traversal via tainted input',
         description: `User input from ${taintSource} used in ${exprText}() at line ${line} without path validation`,

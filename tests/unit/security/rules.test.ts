@@ -20,35 +20,35 @@ describe('Security Rules on vulnerable fixture', () => {
   });
 
   it('should detect SQL injection', () => {
-    const sqlFindings = findings.filter((f) => f.ruleId === 'cmiw-sec-002');
+    const sqlFindings = findings.filter((f) => f.ruleId === 'idd-sec-002');
     expect(sqlFindings.length).toBeGreaterThanOrEqual(1);
     expect(sqlFindings[0].severity).toBe('critical');
   });
 
   it('should detect missing authentication', () => {
-    const authFindings = findings.filter((f) => f.ruleId === 'cmiw-sec-003');
+    const authFindings = findings.filter((f) => f.ruleId === 'idd-sec-003');
     expect(authFindings.length).toBeGreaterThanOrEqual(1);
   });
 
   it('should detect hardcoded secrets', () => {
-    const secretFindings = findings.filter((f) => f.ruleId === 'cmiw-sec-004');
+    const secretFindings = findings.filter((f) => f.ruleId === 'idd-sec-004');
     expect(secretFindings.length).toBeGreaterThanOrEqual(1);
     expect(secretFindings[0].severity).toBe('critical');
   });
 
   it('should detect unsafe eval', () => {
-    const evalFindings = findings.filter((f) => f.ruleId === 'cmiw-sec-005');
+    const evalFindings = findings.filter((f) => f.ruleId === 'idd-sec-005');
     expect(evalFindings.length).toBeGreaterThanOrEqual(1);
   });
 
   it('should detect command injection', () => {
-    const cmdFindings = findings.filter((f) => f.ruleId === 'cmiw-sec-006');
+    const cmdFindings = findings.filter((f) => f.ruleId === 'idd-sec-006');
     expect(cmdFindings.length).toBeGreaterThanOrEqual(1);
     expect(cmdFindings[0].severity).toBe('critical');
   });
 
   it('should detect path traversal', () => {
-    const pathFindings = findings.filter((f) => f.ruleId === 'cmiw-sec-007');
+    const pathFindings = findings.filter((f) => f.ruleId === 'idd-sec-007');
     expect(pathFindings.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -76,20 +76,20 @@ describe('Security Rules with SecurityConfig', () => {
   it('should skip disabled rules', () => {
     const config: SecurityConfig = {
       rules: {
-        'cmiw-sec-002': { enabled: false },
-        'cmiw-sec-003': { enabled: false },
+        'idd-sec-002': { enabled: false },
+        'idd-sec-003': { enabled: false },
       },
     };
 
     const result = runSecurityRules(project, config);
-    const sqlFindings = result.findings.filter((f) => f.ruleId === 'cmiw-sec-002');
-    const authFindings = result.findings.filter((f) => f.ruleId === 'cmiw-sec-003');
+    const sqlFindings = result.findings.filter((f) => f.ruleId === 'idd-sec-002');
+    const authFindings = result.findings.filter((f) => f.ruleId === 'idd-sec-003');
 
     expect(sqlFindings.length).toBe(0);
     expect(authFindings.length).toBe(0);
 
     // Other rules should still work
-    const secretFindings = result.findings.filter((f) => f.ruleId === 'cmiw-sec-004');
+    const secretFindings = result.findings.filter((f) => f.ruleId === 'idd-sec-004');
     expect(secretFindings.length).toBeGreaterThan(0);
   });
 
@@ -136,7 +136,7 @@ describe('Security Rules with SecurityConfig', () => {
     };
 
     const result = runSecurityRules(project, config);
-    const secretFindings = result.findings.filter((f) => f.ruleId === 'cmiw-sec-004');
+    const secretFindings = result.findings.filter((f) => f.ruleId === 'idd-sec-004');
     // The custom patterns should filter out our fixture's secrets
     expect(secretFindings.length).toBe(0);
   });
@@ -174,15 +174,15 @@ describe('analyzeSecurityPosture with config', () => {
     const project = loadProject({ targetPath: VULNERABLE_FIXTURE });
     const config: SecurityConfig = {
       rules: {
-        'cmiw-sec-002': { enabled: false },
-        'cmiw-sec-003': { enabled: false },
-        'cmiw-sec-004': { enabled: false },
+        'idd-sec-002': { enabled: false },
+        'idd-sec-003': { enabled: false },
+        'idd-sec-004': { enabled: false },
       },
     };
 
     const posture = analyzeSecurityPosture(project, config);
     const disabledRuleFindings = posture.findings.filter(
-      (f) => ['cmiw-sec-002', 'cmiw-sec-003', 'cmiw-sec-004'].includes(f.ruleId),
+      (f) => ['idd-sec-002', 'idd-sec-003', 'idd-sec-004'].includes(f.ruleId),
     );
     expect(disabledRuleFindings.length).toBe(0);
     // Fewer findings than without config

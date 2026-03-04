@@ -7,7 +7,7 @@
 import { Project, SourceFile, SyntaxKind, type Scope } from 'ts-morph';
 import {
   ComponentType,
-  type CmiwComponent,
+  type IddComponent,
   type ComponentMetadata,
   type ParameterInfo,
   type PropertyInfo,
@@ -22,8 +22,8 @@ import { logger } from '../utils/logger.js';
  * Intent: Produce a flat list of every identifiable code component.
  * Guarantees: Each component has a unique ID, file path, and line range.
  */
-export function extractComponents(project: Project): CmiwComponent[] {
-  const components: CmiwComponent[] = [];
+export function extractComponents(project: Project): IddComponent[] {
+  const components: IddComponent[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
     const filePath = sourceFile.getFilePath();
@@ -47,7 +47,7 @@ export function extractComponents(project: Project): CmiwComponent[] {
   return components;
 }
 
-function extractFileComponent(sourceFile: SourceFile): CmiwComponent {
+function extractFileComponent(sourceFile: SourceFile): IddComponent {
   const filePath = sourceFile.getFilePath();
   const loc = sourceFile.getEndLineNumber();
 
@@ -66,7 +66,7 @@ function extractFileComponent(sourceFile: SourceFile): CmiwComponent {
   };
 }
 
-function extractClasses(sourceFile: SourceFile): CmiwComponent[] {
+function extractClasses(sourceFile: SourceFile): IddComponent[] {
   const filePath = sourceFile.getFilePath();
 
   return sourceFile.getClasses().map((cls) => {
@@ -114,7 +114,7 @@ function extractClasses(sourceFile: SourceFile): CmiwComponent[] {
   });
 }
 
-function extractFunctions(sourceFile: SourceFile): CmiwComponent[] {
+function extractFunctions(sourceFile: SourceFile): IddComponent[] {
   const filePath = sourceFile.getFilePath();
 
   return sourceFile.getFunctions().map((fn) => {
@@ -142,7 +142,7 @@ function extractFunctions(sourceFile: SourceFile): CmiwComponent[] {
   });
 }
 
-function extractInterfaces(sourceFile: SourceFile): CmiwComponent[] {
+function extractInterfaces(sourceFile: SourceFile): IddComponent[] {
   const filePath = sourceFile.getFilePath();
 
   return sourceFile.getInterfaces().map((iface) => {
@@ -177,7 +177,7 @@ function extractInterfaces(sourceFile: SourceFile): CmiwComponent[] {
   });
 }
 
-function extractTypeAliases(sourceFile: SourceFile): CmiwComponent[] {
+function extractTypeAliases(sourceFile: SourceFile): IddComponent[] {
   const filePath = sourceFile.getFilePath();
 
   return sourceFile.getTypeAliases().map((alias) => {
@@ -203,7 +203,7 @@ function extractTypeAliases(sourceFile: SourceFile): CmiwComponent[] {
   });
 }
 
-function extractEnums(sourceFile: SourceFile): CmiwComponent[] {
+function extractEnums(sourceFile: SourceFile): IddComponent[] {
   const filePath = sourceFile.getFilePath();
 
   return sourceFile.getEnums().map((enumDecl) => {

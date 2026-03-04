@@ -7,7 +7,7 @@
  * Throws for unsupported languages.
  */
 
-import type { CmiwComponent, CmiwRelationship } from '../types/components.js';
+import type { IddComponent, IddRelationship } from '../types/components.js';
 import type { SecurityPosture } from '../types/security.js';
 import type { SecurityConfig } from '../types/config.js';
 
@@ -21,10 +21,10 @@ export interface LanguageAnalyzer {
   getFileCount(): number;
 
   /** Extract all components (classes, functions, modules, etc.) */
-  extractComponents(): CmiwComponent[];
+  extractComponents(): IddComponent[];
 
   /** Build relationships between extracted components */
-  buildRelationships(components: CmiwComponent[]): CmiwRelationship[];
+  buildRelationships(components: IddComponent[]): IddRelationship[];
 
   /** Run security analysis and return findings */
   analyzeSecurityPosture(config?: SecurityConfig): SecurityPosture;

@@ -1,5 +1,5 @@
 /**
- * Intent: Wrap the Anthropic SDK for CMIW-specific LLM calls.
+ * Intent: Wrap the Anthropic SDK for IDD-specific LLM calls.
  * Guarantees: Returns typed responses. Handles API errors with LlmError.
  * Never silently swallows errors -- if the LLM is unavailable, caller sees why.
  */

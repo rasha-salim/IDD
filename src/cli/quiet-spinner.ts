@@ -22,7 +22,7 @@ export function shouldBeQuiet(explicitQuiet?: boolean): boolean {
 
 /**
  * No-op spinner interface for quiet mode.
- * Matches the subset of Ora methods used in CMIW commands.
+ * Matches the subset of Ora methods used in IDD commands.
  */
 interface QuietSpinner {
   start(): QuietSpinner;

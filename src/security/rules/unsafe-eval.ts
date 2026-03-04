@@ -21,7 +21,7 @@ const DANGEROUS_PROPERTIES = ['innerHTML', 'outerHTML'];
 const DANGEROUS_METHODS = ['document.write', 'document.writeln'];
 
 export const unsafeEvalRule: SecurityRuleDefinition = {
-  id: 'cmiw-sec-005',
+  id: 'idd-sec-005',
   name: 'Unsafe Eval/Code Execution',
   description: 'Use of eval(), Function constructor, innerHTML, or other dynamic code execution',
   severity: 'high',
@@ -47,7 +47,7 @@ export const unsafeEvalRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `unsafe-eval-${line}`),
-            ruleId: 'cmiw-sec-005',
+            ruleId: 'idd-sec-005',
             severity: exprText === 'eval' ? 'critical' : 'high',
             title: `Unsafe use of ${exprText}()`,
             description: `${exprText}() used at line ${line} can execute arbitrary code`,
@@ -65,7 +65,7 @@ export const unsafeEvalRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `unsafe-docwrite-${line}`),
-            ruleId: 'cmiw-sec-005',
+            ruleId: 'idd-sec-005',
             severity: 'high',
             title: `Unsafe use of ${exprText}`,
             description: `${exprText} at line ${line} can inject arbitrary HTML`,
@@ -88,7 +88,7 @@ export const unsafeEvalRule: SecurityRuleDefinition = {
             const line = parent.getStartLineNumber();
             findings.push({
               id: generateComponentId('finding', filePath, `unsafe-html-${line}`),
-              ruleId: 'cmiw-sec-005',
+              ruleId: 'idd-sec-005',
               severity: 'high',
               title: `Unsafe assignment to ${propName}`,
               description: `Direct assignment to ${propName} at line ${line} can enable XSS`,
@@ -143,7 +143,7 @@ export const unsafeEvalRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `unsafe-eval-${line}`),
-            ruleId: 'cmiw-sec-005',
+            ruleId: 'idd-sec-005',
             severity,
             title: `Unsafe use of ${exprText}()`,
             description: `${exprText}() used at line ${line} can execute arbitrary code`,
@@ -161,7 +161,7 @@ export const unsafeEvalRule: SecurityRuleDefinition = {
           const line = node.getStartLineNumber();
           findings.push({
             id: generateComponentId('finding', filePath, `unsafe-docwrite-${line}`),
-            ruleId: 'cmiw-sec-005',
+            ruleId: 'idd-sec-005',
             severity: 'high',
             title: `Unsafe use of ${exprText}`,
             description: `${exprText} at line ${line} can inject arbitrary HTML`,
@@ -189,7 +189,7 @@ export const unsafeEvalRule: SecurityRuleDefinition = {
             const line = parent.getStartLineNumber();
             findings.push({
               id: generateComponentId('finding', filePath, `unsafe-html-${line}`),
-              ruleId: 'cmiw-sec-005',
+              ruleId: 'idd-sec-005',
               severity,
               title: `Unsafe assignment to ${propName}`,
               description: `Direct assignment to ${propName} at line ${line} can enable XSS`,

@@ -9,13 +9,13 @@ import { assembleReport } from '../../src/core/report-assembler.js';
 import { formatJson } from '../../src/output/json-formatter.js';
 import { formatSarif } from '../../src/output/sarif-formatter.js';
 import { formatMarkdown } from '../../src/output/markdown-formatter.js';
-import type { CmiwReport } from '../../src/types/report.js';
+import type { IddReport } from '../../src/types/report.js';
 
 const SIMPLE_FIXTURE = resolve(import.meta.dirname, '../fixtures/simple-project');
 const VULNERABLE_FIXTURE = resolve(import.meta.dirname, '../fixtures/security-vulnerable');
 
 describe('Full analysis pipeline - simple project', () => {
-  let report: CmiwReport;
+  let report: IddReport;
 
   it('should complete the full pipeline without errors', () => {
     const startTime = Date.now();
@@ -68,7 +68,7 @@ describe('Full analysis pipeline - simple project', () => {
 
   it('should produce valid Markdown output', () => {
     const md = formatMarkdown(report);
-    expect(md).toContain('# CMIW Analysis Report');
+    expect(md).toContain('# IDD Analysis Report');
     expect(md).toContain('## Summary');
     expect(md).toContain('## Security');
   });

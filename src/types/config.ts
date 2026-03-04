@@ -49,7 +49,7 @@ export interface RuleConfig {
 }
 
 /**
- * Intent: Top-level security configuration loaded from .cmiwrc.json and CLI flags.
+ * Intent: Top-level security configuration loaded from .iddrc.json and CLI flags.
  * Controls which rules run, custom taint sources/sinks, and framework-specific settings.
  */
 export interface SecurityConfig {

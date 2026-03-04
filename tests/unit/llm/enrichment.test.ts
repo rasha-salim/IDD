@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildArchitecturePrompt, buildSecurityPrompt } from '../../../src/llm/prompts.js';
 import { ComponentType, RelationshipType } from '../../../src/types/components.js';
-import type { CmiwComponent, CmiwRelationship } from '../../../src/types/components.js';
+import type { IddComponent, IddRelationship } from '../../../src/types/components.js';
 import type { KnowledgeGraph } from '../../../src/types/graph.js';
 import type { SecurityPosture } from '../../../src/types/security.js';
 
-const mockComponents: CmiwComponent[] = [
+const mockComponents: IddComponent[] = [
   {
     id: 'class-user-abc123',
     name: 'User',
@@ -26,7 +26,7 @@ const mockComponents: CmiwComponent[] = [
   },
 ];
 
-const mockRelationships: CmiwRelationship[] = [
+const mockRelationships: IddRelationship[] = [
   {
     id: 'rel-imports-abc',
     source: 'class-userservice-def456',
@@ -57,7 +57,7 @@ const mockPosture: SecurityPosture = {
   findings: [
     {
       id: 'finding-1',
-      ruleId: 'cmiw-sec-002',
+      ruleId: 'idd-sec-002',
       severity: 'critical',
       title: 'SQL Injection',
       description: 'Template literal SQL query',
@@ -71,7 +71,7 @@ const mockPosture: SecurityPosture = {
     },
   ],
   rules: [
-    { id: 'cmiw-sec-002', name: 'SQL Injection', description: 'SQL injection detection', severity: 'critical' },
+    { id: 'idd-sec-002', name: 'SQL Injection', description: 'SQL injection detection', severity: 'critical' },
   ],
   summary: 'Found 1 critical finding.',
 };
@@ -113,7 +113,7 @@ describe('buildSecurityPrompt', () => {
 
   it('should include rule IDs', () => {
     const prompt = buildSecurityPrompt(mockPosture);
-    expect(prompt).toContain('cmiw-sec-002');
+    expect(prompt).toContain('idd-sec-002');
   });
 
   it('should include CWE references', () => {

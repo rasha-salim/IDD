@@ -37,7 +37,7 @@ const USER_INPUT_PATTERNS = [
 const SINK_METHODS = ['query', 'execute', 'raw', 'insertAdjacentHTML'];
 
 export const unsanitizedInputRule: SecurityRuleDefinition = {
-  id: 'cmiw-sec-001',
+  id: 'idd-sec-001',
   name: 'Unsanitized Input',
   description: 'User input from request objects flows directly into dangerous sinks without sanitization',
   severity: 'high',
@@ -58,7 +58,7 @@ export const unsanitizedInputRule: SecurityRuleDefinition = {
       if (hasUserInput && hasSink) {
         findings.push({
           id: generateComponentId('finding', filePath, `unsanitized-${i}`),
-          ruleId: 'cmiw-sec-001',
+          ruleId: 'idd-sec-001',
           severity: 'high',
           title: 'Unsanitized user input in dangerous sink',
           description: `User input appears to flow directly into a dangerous operation on line ${i + 1}`,
@@ -93,7 +93,7 @@ export const unsanitizedInputRule: SecurityRuleDefinition = {
               const line = node.getStartLineNumber();
               findings.push({
                 id: generateComponentId('finding', filePath, `unsanitized-${line}`),
-                ruleId: 'cmiw-sec-001',
+                ruleId: 'idd-sec-001',
                 severity: 'high',
                 title: 'Unsanitized user input in dangerous sink',
                 description: `User input from ${taintResult.source} flows into ${exprText}() at line ${line}`,
@@ -124,7 +124,7 @@ export const unsanitizedInputRule: SecurityRuleDefinition = {
                 const line = parent.getStartLineNumber();
                 findings.push({
                   id: generateComponentId('finding', filePath, `unsanitized-html-${line}`),
-                  ruleId: 'cmiw-sec-001',
+                  ruleId: 'idd-sec-001',
                   severity: 'high',
                   title: 'Unsanitized user input assigned to innerHTML',
                   description: `User input from ${taintResult.source} assigned to ${propName} at line ${line}`,

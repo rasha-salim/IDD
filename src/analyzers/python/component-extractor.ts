@@ -9,7 +9,7 @@
 import type Parser from 'web-tree-sitter';
 import {
   ComponentType,
-  type CmiwComponent,
+  type IddComponent,
   type ComponentMetadata,
   type ParameterInfo,
   type PropertyInfo,
@@ -30,8 +30,8 @@ export interface ParsedPythonFile {
  * Intent: Produce a flat list of every identifiable Python code component.
  * Guarantees: Each component has a unique ID, file path, and line range.
  */
-export function extractPythonComponents(files: ParsedPythonFile[]): CmiwComponent[] {
-  const components: CmiwComponent[] = [];
+export function extractPythonComponents(files: ParsedPythonFile[]): IddComponent[] {
+  const components: IddComponent[] = [];
 
   for (const file of files) {
     logger.debug(`Extracting Python components from: ${file.filePath}`);
@@ -45,7 +45,7 @@ export function extractPythonComponents(files: ParsedPythonFile[]): CmiwComponen
   return components;
 }
 
-function extractFileComponent(file: ParsedPythonFile): CmiwComponent {
+function extractFileComponent(file: ParsedPythonFile): IddComponent {
   const lines = file.source.split('\n');
   const loc = lines.length;
   const baseName = file.filePath.split('/').pop() ?? file.filePath;
@@ -65,8 +65,8 @@ function extractFileComponent(file: ParsedPythonFile): CmiwComponent {
   };
 }
 
-function extractClasses(file: ParsedPythonFile): CmiwComponent[] {
-  const components: CmiwComponent[] = [];
+function extractClasses(file: ParsedPythonFile): IddComponent[] {
+  const components: IddComponent[] = [];
   const rootNode = file.tree.rootNode;
 
   for (const node of rootNode.children) {
@@ -113,8 +113,8 @@ function extractClasses(file: ParsedPythonFile): CmiwComponent[] {
   return components;
 }
 
-function extractTopLevelFunctions(file: ParsedPythonFile): CmiwComponent[] {
-  const components: CmiwComponent[] = [];
+function extractTopLevelFunctions(file: ParsedPythonFile): IddComponent[] {
+  const components: IddComponent[] = [];
   const rootNode = file.tree.rootNode;
 
   for (const node of rootNode.children) {

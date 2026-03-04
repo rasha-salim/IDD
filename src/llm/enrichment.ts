@@ -4,7 +4,7 @@
  * Guarantees: If LLM fails, the report explicitly states why (no silent fallback).
  */
 
-import type { CmiwComponent, CmiwRelationship } from '../types/components.js';
+import type { IddComponent, IddRelationship } from '../types/components.js';
 import type { KnowledgeGraph } from '../types/graph.js';
 import type { Architecture } from '../types/architecture.js';
 import type { SecurityPosture } from '../types/security.js';
@@ -31,8 +31,8 @@ export interface EnrichmentResult {
  * contain the error message explaining why enrichment failed.
  */
 export async function enrichWithLlm(
-  components: CmiwComponent[],
-  relationships: CmiwRelationship[],
+  components: IddComponent[],
+  relationships: IddRelationship[],
   graph: KnowledgeGraph,
   securityPosture: SecurityPosture,
 ): Promise<EnrichmentResult> {

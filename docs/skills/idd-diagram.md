@@ -1,11 +1,11 @@
 ---
-name: cmiw-diagram
-description: Generate a system design diagram from a codebase using CMIW analysis. Use when the user wants to visualize project architecture, component relationships, or system structure.
+name: idd-diagram
+description: Generate a system design diagram from a codebase using IDD analysis. Use when the user wants to visualize project architecture, component relationships, or system structure.
 ---
 
-# CMIW System Design Diagram
+# IDD System Design Diagram
 
-Analyze a codebase with CMIW and generate a Mermaid system design diagram showing components, relationships, layers, and clusters.
+Analyze a codebase with IDD and generate a Mermaid system design diagram showing components, relationships, layers, and clusters.
 
 ## Arguments
 
@@ -17,15 +17,15 @@ The user may provide:
 
 ### 1. Gather data
 
-Run three CMIW commands to collect all the data needed for the diagram. Capture the JSON output of each:
+Run three IDD commands to collect all the data needed for the diagram. Capture the JSON output of each:
 
 ```bash
-COMPONENTS=$(cmiw components <path> --quiet 2>/dev/null)
-GRAPH=$(cmiw graph <path> --quiet 2>/dev/null)
-SECURITY=$(cmiw security <path> --quiet 2>/dev/null)
+COMPONENTS=$(idd components <path> --quiet 2>/dev/null)
+GRAPH=$(idd graph <path> --quiet 2>/dev/null)
+SECURITY=$(idd security <path> --quiet 2>/dev/null)
 ```
 
-If any command fails (exit 1), report the error and stop. If CMIW is not installed, tell the user: `npm install -g cmiw-cli`.
+If any command fails (exit 1), report the error and stop. If IDD is not installed, tell the user: `npm install -g idd-cli`.
 
 ### 2. Analyze the structure
 
@@ -107,7 +107,7 @@ After creating the file:
 
 ## Important
 
-- If CMIW is not installed, tell the user to install it: `npm install -g cmiw-cli`
-- Do not invent components or relationships. Only use what CMIW reports.
+- If IDD is not installed, tell the user to install it: `npm install -g idd-cli`
+- Do not invent components or relationships. Only use what IDD reports.
 - The diagram must be valid Mermaid syntax. Test by reviewing the output for syntax errors before saving.
 - If the project is very small (fewer than 3 components), note that the diagram may not be very useful and suggest running on a larger project.

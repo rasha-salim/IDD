@@ -1,21 +1,21 @@
 /**
- * Intent: Combine all analysis results into a complete CmiwReport.
+ * Intent: Combine all analysis results into a complete IddReport.
  * Guarantees: All fields are populated. Metadata includes timing and counts.
  */
 
-import type { CmiwComponent, CmiwRelationship } from '../types/components.js';
+import type { IddComponent, IddRelationship } from '../types/components.js';
 import type { KnowledgeGraph } from '../types/graph.js';
 import type { SecurityPosture } from '../types/security.js';
 import type { Architecture } from '../types/architecture.js';
-import type { CmiwReport, ReportMetadata } from '../types/report.js';
+import type { IddReport, ReportMetadata } from '../types/report.js';
 import { logger } from '../utils/logger.js';
 
-const CMIW_VERSION = '0.1.0';
+const IDD_VERSION = '0.1.0';
 
 export interface AssembleInput {
   analyzedPath: string;
-  components: CmiwComponent[];
-  relationships: CmiwRelationship[];
+  components: IddComponent[];
+  relationships: IddRelationship[];
   graph: KnowledgeGraph;
   architecture: Architecture;
   security: SecurityPosture;
@@ -24,18 +24,18 @@ export interface AssembleInput {
 }
 
 /**
- * Assemble all analysis pieces into the final CmiwReport.
+ * Assemble all analysis pieces into the final report.
  *
  * Intent: Create the complete, typed output structure.
- * Guarantees: All metadata fields are computed. Type-safe against CmiwReport.
+ * Guarantees: All metadata fields are computed. Type-safe against IddReport.
  */
-export function assembleReport(input: AssembleInput): CmiwReport {
+export function assembleReport(input: AssembleInput): IddReport {
   const analysisTimeMs = Date.now() - input.startTime;
 
   const fileComponents = input.components.filter((c) => c.type === 'file');
 
   const metadata: ReportMetadata = {
-    version: CMIW_VERSION,
+    version: IDD_VERSION,
     timestamp: new Date().toISOString(),
     analyzedPath: input.analyzedPath,
     totalFiles: fileComponents.length,
@@ -45,7 +45,7 @@ export function assembleReport(input: AssembleInput): CmiwReport {
     llmEnriched: input.llmEnriched,
   };
 
-  const report: CmiwReport = {
+  const report: IddReport = {
     metadata,
     components: input.components,
     relationships: input.relationships,

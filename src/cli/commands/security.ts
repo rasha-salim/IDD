@@ -14,7 +14,7 @@ import { createAnalyzer } from '../../core/language-analyzer.js';
 import { loadSecurityConfig } from '../../core/config-loader.js';
 import { shouldBeQuiet, createSpinner } from '../quiet-spinner.js';
 import { setLogLevel } from '../../utils/logger.js';
-import { CmiwError } from '../../utils/errors.js';
+import { IddError } from '../../utils/errors.js';
 
 /**
  * Execute the security subcommand.
@@ -32,7 +32,7 @@ export async function runSecurity(options: SubcommandOptions): Promise<void> {
   const targetPath = resolve(options.targetPath);
 
   if (!existsSync(targetPath)) {
-    throw new CmiwError(`Target path does not exist: ${targetPath}`, 'INVALID_PATH');
+    throw new IddError(`Target path does not exist: ${targetPath}`, 'INVALID_PATH');
   }
 
   const configSpinner = createSpinner('Loading security config...', quiet);

@@ -2,12 +2,12 @@
  * Intent: Python-specific security rules that detect common vulnerabilities.
  *
  * Rules:
- * - cmiw-py-001: SQL Injection (f-strings/format in DB calls)
- * - cmiw-py-002: Command Injection (user input in os.system/subprocess)
- * - cmiw-py-003: Path Traversal (user input in open/os.path without validation)
- * - cmiw-py-004: Hardcoded Secrets (passwords/tokens as string literals)
- * - cmiw-py-005: Unsafe Deserialization (pickle.loads, yaml.load without SafeLoader)
- * - cmiw-py-006: Missing Auth (Flask/Django routes without @login_required)
+ * - idd-py-001: SQL Injection (f-strings/format in DB calls)
+ * - idd-py-002: Command Injection (user input in os.system/subprocess)
+ * - idd-py-003: Path Traversal (user input in open/os.path without validation)
+ * - idd-py-004: Hardcoded Secrets (passwords/tokens as string literals)
+ * - idd-py-005: Unsafe Deserialization (pickle.loads, yaml.load without SafeLoader)
+ * - idd-py-006: Missing Auth (Flask/Django routes without @login_required)
  *
  * Guarantees: Each rule produces SecurityFinding[] with file path, line, snippet, CWE.
  * Rules use taint analysis when available to reduce false positives.
@@ -56,7 +56,7 @@ const DESERIALIZE_SINKS = new Set([
 // ---------- Rule implementations ----------
 
 const sqlInjectionRule: PythonSecurityRule = {
-  id: 'cmiw-py-001',
+  id: 'idd-py-001',
   name: 'SQL Injection',
   description: 'User input interpolated into SQL queries via f-strings, .format(), or % formatting',
   severity: 'high',
@@ -114,7 +114,7 @@ const sqlInjectionRule: PythonSecurityRule = {
       const line = node.startPosition.row + 1;
       findings.push({
         id: generateComponentId('finding', file.filePath, `py-sql-injection-${line}`),
-        ruleId: 'cmiw-py-001',
+        ruleId: 'idd-py-001',
         severity: 'high',
         title: 'SQL injection via string interpolation',
         description: `SQL query at line ${line} uses string interpolation with potentially tainted input`,
@@ -133,7 +133,7 @@ const sqlInjectionRule: PythonSecurityRule = {
 };
 
 const commandInjectionRule: PythonSecurityRule = {
-  id: 'cmiw-py-002',
+  id: 'idd-py-002',
   name: 'Command Injection',
   description: 'User input flows to os.system(), subprocess, eval(), or exec()',
   severity: 'critical',
@@ -195,7 +195,7 @@ const commandInjectionRule: PythonSecurityRule = {
       const line = node.startPosition.row + 1;
       findings.push({
         id: generateComponentId('finding', file.filePath, `py-cmd-injection-${line}`),
-        ruleId: 'cmiw-py-002',
+        ruleId: 'idd-py-002',
         severity: 'critical',
         title: `Command injection via ${funcText}()`,
         description: `User input may flow to ${funcText}() at line ${line}`,
@@ -214,7 +214,7 @@ const commandInjectionRule: PythonSecurityRule = {
 };
 
 const pathTraversalRule: PythonSecurityRule = {
-  id: 'cmiw-py-003',
+  id: 'idd-py-003',
   name: 'Path Traversal',
   description: 'User input used in file path operations without validation',
   severity: 'high',
@@ -257,7 +257,7 @@ const pathTraversalRule: PythonSecurityRule = {
       const line = node.startPosition.row + 1;
       findings.push({
         id: generateComponentId('finding', file.filePath, `py-path-traversal-${line}`),
-        ruleId: 'cmiw-py-003',
+        ruleId: 'idd-py-003',
         severity: 'high',
         title: `Path traversal via ${funcText}()`,
         description: `User input used in ${funcText}() at line ${line} without path validation`,
@@ -276,7 +276,7 @@ const pathTraversalRule: PythonSecurityRule = {
 };
 
 const hardcodedSecretsRule: PythonSecurityRule = {
-  id: 'cmiw-py-004',
+  id: 'idd-py-004',
   name: 'Hardcoded Secrets',
   description: 'Passwords, API keys, or tokens stored as string literals in source code',
   severity: 'medium',
@@ -314,7 +314,7 @@ const hardcodedSecretsRule: PythonSecurityRule = {
       const line = node.startPosition.row + 1;
       findings.push({
         id: generateComponentId('finding', file.filePath, `py-hardcoded-secret-${line}`),
-        ruleId: 'cmiw-py-004',
+        ruleId: 'idd-py-004',
         severity: 'medium',
         title: 'Hardcoded secret detected',
         description: `Variable "${varName}" at line ${line} contains a hardcoded secret`,
@@ -333,7 +333,7 @@ const hardcodedSecretsRule: PythonSecurityRule = {
 };
 
 const unsafeDeserializationRule: PythonSecurityRule = {
-  id: 'cmiw-py-005',
+  id: 'idd-py-005',
   name: 'Unsafe Deserialization',
   description: 'Use of pickle, marshal, or yaml.load() without SafeLoader on potentially untrusted data',
   severity: 'critical',
@@ -372,7 +372,7 @@ const unsafeDeserializationRule: PythonSecurityRule = {
       const line = node.startPosition.row + 1;
       findings.push({
         id: generateComponentId('finding', file.filePath, `py-unsafe-deser-${line}`),
-        ruleId: 'cmiw-py-005',
+        ruleId: 'idd-py-005',
         severity: 'critical',
         title: `Unsafe deserialization via ${funcText}()`,
         description: `${funcText}() at line ${line} can execute arbitrary code if input is untrusted`,
@@ -393,7 +393,7 @@ const unsafeDeserializationRule: PythonSecurityRule = {
 };
 
 const missingAuthRule: PythonSecurityRule = {
-  id: 'cmiw-py-006',
+  id: 'idd-py-006',
   name: 'Missing Authentication',
   description: 'Flask/Django route handlers without authentication decorators',
   severity: 'medium',
@@ -466,7 +466,7 @@ const missingAuthRule: PythonSecurityRule = {
       const line = node.startPosition.row + 1;
       findings.push({
         id: generateComponentId('finding', file.filePath, `py-missing-auth-${line}`),
-        ruleId: 'cmiw-py-006',
+        ruleId: 'idd-py-006',
         severity: 'medium',
         title: `Route handler "${funcName}" missing authentication`,
         description: `Route handler at line ${line} for "${routePath || 'unknown path'}" has no authentication decorator`,

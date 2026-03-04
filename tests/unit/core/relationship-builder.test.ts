@@ -3,13 +3,13 @@ import { resolve } from 'node:path';
 import { loadProject } from '../../../src/core/project-loader.js';
 import { extractComponents } from '../../../src/core/component-extractor.js';
 import { buildRelationships } from '../../../src/core/relationship-builder.js';
-import { RelationshipType, type CmiwComponent, type CmiwRelationship } from '../../../src/types/components.js';
+import { RelationshipType, type IddComponent, type IddRelationship } from '../../../src/types/components.js';
 
 const FIXTURE_PATH = resolve(import.meta.dirname, '../../fixtures/simple-project');
 
 describe('buildRelationships', () => {
-  let components: CmiwComponent[];
-  let relationships: CmiwRelationship[];
+  let components: IddComponent[];
+  let relationships: IddRelationship[];
 
   beforeAll(() => {
     const project = loadProject({ targetPath: FIXTURE_PATH });

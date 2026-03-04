@@ -25,7 +25,7 @@ export enum RelationshipType {
   DependsOn = 'depends-on',
 }
 
-export interface CmiwComponent {
+export interface IddComponent {
   id: string;
   name: string;
   type: ComponentType;
@@ -71,7 +71,7 @@ export interface MethodInfo {
   isAsync: boolean;
 }
 
-export interface CmiwRelationship {
+export interface IddRelationship {
   id: string;
   source: string;
   target: string;
