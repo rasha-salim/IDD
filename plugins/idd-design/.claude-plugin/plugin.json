@@ -1,0 +1,5 @@
+{
+  "name": "idd-design",
+  "version": "1.0.0",
+  "description": "Intent-Driven Development (IDD) methodology plugin for Claude Code. Guides you through structured design phases -- decompose, options, decide, diagram -- before writing code. No external tools or API keys required."
+}

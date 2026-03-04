@@ -193,6 +193,15 @@ IDD includes 6 ready-to-use Claude Code skills for interactive agent workflows:
 
 Install them by copying from `docs/skills/` to `~/.claude/skills/`. See [docs/agent-integration.md](docs/agent-integration.md#claude-code-skills) for full details and instructions for writing your own skills.
 
+### Claude Code Plugin
+
+The IDD design methodology is also available as a standalone Claude Code plugin in [`plugins/idd-design/`](plugins/idd-design/). The plugin provides:
+
+- **`/idd-design:idd "<task>"`** -- Slash command for the full 4-phase design workflow
+- **Auto-trigger skill** -- Detects when you are about to code a non-trivial task without designing first
+
+No CLI tools or API keys required. Install with `/plugin install idd-design` or see the [plugin README](plugins/idd-design/README.md) for manual setup.
+
 ### Library API
 
 All analysis functions are available for programmatic use:
