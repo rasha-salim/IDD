@@ -1,4 +1,5 @@
 # IDD Design Plugin for Claude Code
+**Disclaimer**: This is an experimental project on using adapting a reliable methodology when developing with AI agents
 
 A Claude Code plugin that brings the Intent-Driven Development (IDD) methodology into your coding workflow. Forces structured design thinking before implementation -- decompose tasks, explore options, make decisions explicit, and generate architecture diagrams.
 
